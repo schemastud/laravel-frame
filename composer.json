@@ -1,0 +1,65 @@
+{
+    "name": "schemastud/laravel-frame",
+    "description": "The batteries-UX backend rung for schema-driven admin editors: the #[AdminResource] registry (AdminResourceDefinition), the #[Widget] -> x-stud-widget projector, #[ReadOnlyField], and a served GET /frame/manifest. Sits one level above a filter-schema controller; resolves a resource key to its whole editor wiring. Pairs with @schemastud/frame on the JS side.",
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": "^8.2",
+        "illuminate/contracts": "^11.0|^12.0|^13.0",
+        "illuminate/support": "^11.0|^12.0|^13.0",
+        "schemastud/laravel-data-schemas": "dev-main",
+        "spatie/laravel-data": "^4.9",
+        "spatie/laravel-package-tools": "^1.16",
+        "symfony/finder": "^6.0|^7.0|^8.0"
+    },
+    "require-dev": {
+        "laravel/pint": "^1.0",
+        "orchestra/testbench": "^9.0|^10.0|^11.0",
+        "phpunit/phpunit": "^11.0|^12.0",
+        "spatie/laravel-typescript-transformer": "^3.3"
+    },
+    "suggest": {
+        "rushing/laravel-data-filters": "Reuse a resource's data-filters query/filter schema for the ListShell facets bar.",
+        "spatie/laravel-typescript-transformer": "Emit the AdminResourceDefinition TS type so the frontend manifest entry IS the backend projection."
+    },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../laravel-data-schemas",
+            "options": { "symlink": true }
+        },
+        {
+            "type": "path",
+            "url": "../../rushing/laravel-popcorn",
+            "options": { "symlink": true }
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Schemastud\\Frame\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Schemastud\\Frame\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Schemastud\\Frame\\FrameServiceProvider"
+            ]
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "scripts": {
+        "pint": "@php -d memory_limit=512M vendor/bin/pint",
+        "test": "@php vendor/bin/phpunit"
+    }
+}

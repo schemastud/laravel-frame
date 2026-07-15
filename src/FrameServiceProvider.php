@@ -1,0 +1,69 @@
+<?php
+
+namespace Schemastud\Frame;
+
+use Schemastud\Frame\Registry\AdminResourceRegistry;
+use Schemastud\Frame\Strategies\ReadOnlyAttributeStrategy;
+use Schemastud\Frame\Strategies\WidgetAttributesStrategy;
+use Spatie\LaravelPackageTools\Package;
+use Spatie\LaravelPackageTools\PackageServiceProvider;
+
+class FrameServiceProvider extends PackageServiceProvider
+{
+    public function configurePackage(Package $package): void
+    {
+        $package
+            ->name('laravel-frame')
+            ->hasConfigFile('frame');
+    }
+
+    public function packageRegistered(): void
+    {
+        $this->app->singleton(AdminResourceRegistry::class, fn () => new AdminResourceRegistry);
+    }
+
+    public function packageBooted(): void
+    {
+        $this->registerSchemaStrategies();
+        $this->discoverResources();
+        $this->registerManifestRoute();
+    }
+
+    /**
+     * Append frame's property strategies to the laravel-data-schemas pipeline so
+     * `#[Widget]` projects to `x-stud-widget` and `#[ReadOnlyField]` to `readOnly`.
+     * Idempotent — guards against double-registration on re-boot (the data-filters
+     * pattern).
+     */
+    protected function registerSchemaStrategies(): void
+    {
+        $strategies = config('data-schemas.strategies', []);
+
+        foreach ([WidgetAttributesStrategy::class, ReadOnlyAttributeStrategy::class] as $strategy) {
+            if (! in_array($strategy, $strategies, true)) {
+                $strategies[] = $strategy;
+            }
+        }
+
+        config(['data-schemas.strategies' => $strategies]);
+    }
+
+    /**
+     * Boot-time discovery: reflect the configured #[AdminResource] classes and scan
+     * the configured discover paths into the singleton registry.
+     */
+    protected function discoverResources(): void
+    {
+        $this->app->make(AdminResourceRegistry::class)->discover(
+            config('frame.resources', []),
+            config('frame.discover_paths', []),
+        );
+    }
+
+    protected function registerManifestRoute(): void
+    {
+        if (config('frame.register_route', true)) {
+            $this->loadRoutesFrom(__DIR__.'/../routes/frame.php');
+        }
+    }
+}

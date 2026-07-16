@@ -7,6 +7,7 @@ use Schemastud\Frame\Attributes\WidgetIn;
 use Schemastud\Frame\Registry\ContextManifest;
 use Schemastud\Frame\Tests\Fixtures\BadClassContextData;
 use Schemastud\Frame\Tests\Fixtures\ContactResourceData;
+use Schemastud\Frame\Tests\Fixtures\RowActionsResourceData;
 
 /**
  * The {byNode, inherits, known} render-context block for one resource's Data class —
@@ -88,5 +89,18 @@ class ContextManifestTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
 
         (new ContextManifest)->forResource(BadClassContextData::class);
+    }
+
+    public function test_class_level_row_actions_projects_as_a_root_list_column_entry(): void
+    {
+        $root = (new ContextManifest)->forResource(RowActionsResourceData::class)['byNode'][''];
+
+        $this->assertSame([
+            'list-column' => [
+                'participates' => true,
+                'widget' => 'row-actions',
+                'options' => ['actions' => ['publish', 'archive']],
+            ],
+        ], $root);
     }
 }

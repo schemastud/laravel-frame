@@ -64,7 +64,7 @@ class WidgetContextProjector
         foreach ($attributes as $attribute) {
             $widgetIn = $attribute->newInstance();
 
-            $this->validate($widgetIn->context, $classLevel);
+            $this->validate($widgetIn->context, $classLevel, $widgetIn->bind);
 
             $map[$widgetIn->context] = $this->entry($widgetIn);
         }
@@ -119,7 +119,7 @@ class WidgetContextProjector
         return $entry;
     }
 
-    private function validate(string $context, bool $classLevel): void
+    private function validate(string $context, bool $classLevel, string|bool $bind = true): void
     {
         if (! in_array($context, self::KnownContexts, true)) {
             throw new InvalidArgumentException(
@@ -129,7 +129,13 @@ class WidgetContextProjector
 
         $classOnly = in_array($context, self::ClassOnlyContexts, true);
 
-        if ($classLevel && ! $classOnly) {
+        // The class-level #[RowActions] sugar is a `list-column` binding of the `row-actions`
+        // widget placed on the record (the row-actions column is not backed by any single
+        // property). Permit that one class-level `list-column` case; every other per-property
+        // context stays property-only at the class level.
+        $classLevelRowActions = $context === 'list-column' && $bind === 'row-actions';
+
+        if ($classLevel && ! $classOnly && ! $classLevelRowActions) {
             throw new InvalidArgumentException(
                 "Widget context [{$context}] is per-property; it cannot be declared at the class level."
             );

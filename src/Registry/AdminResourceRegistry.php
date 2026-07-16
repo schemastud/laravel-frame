@@ -42,6 +42,16 @@ class AdminResourceRegistry
             );
         }
 
+        $hasModel = $attribute->model !== null;
+        $hasSource = $attribute->source !== null;
+
+        if ($hasModel === $hasSource) {
+            throw new InvalidArgumentException(
+                "Admin resource [{$attribute->key}] must set exactly one of `model` or `source`; "
+                .($hasModel ? 'both were set.' : 'neither was set.')
+            );
+        }
+
         $this->register(AdminResourceDefinition::fromAttribute($dataClass, $attribute));
     }
 

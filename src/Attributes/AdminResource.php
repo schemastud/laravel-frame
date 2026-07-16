@@ -12,18 +12,22 @@ use Attribute;
  * and, absent an `editData` escape hatch, its edit shape too.
  *
  * The registry reflects this attribute at boot to build an AdminResourceDefinition.
- * `key`/`model` are required; the rest are the net-new editor fields that widen a
- * data-filters ResourceDefinition without mutating it. `query` optionally names a
+ * `key`/`label` are required; the rest are the net-new editor fields that widen a
+ * data-filters ResourceDefinition without mutating it. Backing is EITHER a single
+ * Eloquent `model` OR a custom `source` (class-string<UnionSource>) that fuses many
+ * underlying models/services into one list+detail resource — exactly one of the two
+ * must be set (both/neither throws at registration). `query` optionally names a
  * data-filters query class so the ListShell facets bar can ride an existing filter
- * schema.
+ * schema; it does not apply to a `source`-backed (union) resource.
  */
 #[Attribute(Attribute::TARGET_CLASS)]
 class AdminResource
 {
     /**
      * @param  string  $key  resource slug ('axis-leaf', 'layers', …)
-     * @param  class-string  $model  the Eloquent model
      * @param  string  $label  nav label
+     * @param  class-string|null  $model  the Eloquent model (null for a source-backed union resource)
+     * @param  class-string|null  $source  a UnionSource fusing many sub-sources; mutually exclusive with $model
      * @param  string|null  $group  nav group heading
      * @param  string|null  $icon  nav icon key
      * @param  'splicewire'|'raw'  $form  per-resource default form mode
@@ -33,8 +37,9 @@ class AdminResource
      */
     public function __construct(
         public string $key,
-        public string $model,
         public string $label,
+        public ?string $model = null,
+        public ?string $source = null,
         public ?string $group = null,
         public ?string $icon = null,
         public string $form = 'raw',

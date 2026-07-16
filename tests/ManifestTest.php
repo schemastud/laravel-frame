@@ -43,8 +43,11 @@ class ManifestTest extends TestCase
 
         $registry->register(new AdminResourceDefinition(
             key: 'layer-nodes',
+            sourceKind: 'model',
             model: SampleModel::class,
+            source: null,
             data: SampleResourceData::class,
+            creatable: true,
             query: null,
             editData: null,
             policy: null,
@@ -73,15 +76,21 @@ class ManifestTest extends TestCase
 
         $registry->register(new AdminResourceDefinition(
             key: 'layers',
+            sourceKind: 'model',
             model: SampleModel::class,
+            source: null,
             data: SampleResourceData::class,
+            creatable: true,
             query: null, editData: null, policy: null, form: 'raw',
             nav: new NavMetadata(label: 'Layers'),
         ));
         $registry->register(new AdminResourceDefinition(
             key: 'layer-nodes',
+            sourceKind: 'model',
             model: SampleModel::class,
+            source: null,
             data: SampleResourceData::class,
+            creatable: true,
             query: null, editData: null, policy: null, form: 'raw',
             nav: new NavMetadata(label: 'Layer Nodes'),
         ));

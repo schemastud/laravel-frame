@@ -35,6 +35,10 @@ class ManifestTest extends TestCase
         $this->assertSame('raw', $def->form);
         $this->assertSame('Samples', $def->nav->label);
         $this->assertSame('Testing', $def->nav->group);
+        // FC-22 host-nav join keys flow from the attribute to NavMetadata.
+        $this->assertSame('lab', $def->nav->section);
+        $this->assertSame(3, $def->nav->navOrder);
+        $this->assertSame('samples.index', $def->nav->routeName);
     }
 
     public function test_register_escape_hatch_adds_an_attribute_less_resource(): void

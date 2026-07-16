@@ -34,6 +34,9 @@ class AdminResource
      * @param  class-string|null  $editData  rare escape-hatch edit DTO (input-shape divergence)
      * @param  string|null  $policy  ability/policy key the injected can() resolves against
      * @param  class-string|null  $query  data-filters query class (optional filter schema)
+     * @param  string|null  $section  the host sitemap section this resource auto-attaches into (nav wiring); null = not in the primary nav
+     * @param  int|null  $navOrder  placement within the section (lower first; null sorts after ordered siblings)
+     * @param  string|null  $routeName  stable route identity a host binds the generated leaf under; null = the host derives one from `key`
      */
     public function __construct(
         public string $key,
@@ -46,5 +49,8 @@ class AdminResource
         public ?string $editData = null,
         public ?string $policy = null,
         public ?string $query = null,
+        public ?string $section = null,
+        public ?int $navOrder = null,
+        public ?string $routeName = null,
     ) {}
 }

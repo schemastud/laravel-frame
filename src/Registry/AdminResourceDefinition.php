@@ -76,6 +76,9 @@ class AdminResourceDefinition extends Data
                     label: $attribute->label,
                     group: $attribute->group,
                     icon: $attribute->icon,
+                    section: $attribute->section,
+                    navOrder: $attribute->navOrder,
+                    routeName: $attribute->routeName,
                 ),
             );
         }
@@ -95,6 +98,9 @@ class AdminResourceDefinition extends Data
                 label: $attribute->label,
                 group: $attribute->group,
                 icon: $attribute->icon,
+                section: $attribute->section,
+                navOrder: $attribute->navOrder,
+                routeName: $attribute->routeName,
             ),
         );
     }

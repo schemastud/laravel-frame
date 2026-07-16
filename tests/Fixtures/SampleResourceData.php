@@ -20,6 +20,9 @@ use Spatie\LaravelData\Data;
     group: 'Testing',
     icon: 'flask',
     form: 'raw',
+    section: 'lab',
+    navOrder: 3,
+    routeName: 'samples.index',
 )]
 class SampleResourceData extends Data
 {

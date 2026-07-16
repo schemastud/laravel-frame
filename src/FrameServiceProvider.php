@@ -5,6 +5,7 @@ namespace Schemastud\Frame;
 use Schemastud\Frame\Registry\AdminResourceRegistry;
 use Schemastud\Frame\Strategies\ReadOnlyAttributeStrategy;
 use Schemastud\Frame\Strategies\WidgetAttributesStrategy;
+use Schemastud\Frame\Strategies\WidgetContextsStrategy;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 
@@ -39,7 +40,7 @@ class FrameServiceProvider extends PackageServiceProvider
     {
         $strategies = config('data-schemas.strategies', []);
 
-        foreach ([WidgetAttributesStrategy::class, ReadOnlyAttributeStrategy::class] as $strategy) {
+        foreach ([WidgetAttributesStrategy::class, ReadOnlyAttributeStrategy::class, WidgetContextsStrategy::class] as $strategy) {
             if (! in_array($strategy, $strategies, true)) {
                 $strategies[] = $strategy;
             }

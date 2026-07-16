@@ -21,12 +21,19 @@ class Keywords
     public const WidgetOptions = 'x-stud-widget-options';
 
     /**
+     * The per-context widget map projected from the `#[WidgetIn]` family — one
+     * property's `{context => entry}` participation across the closed five-context
+     * enum (edit|detail|list-column|list-item|row-cell).
+     */
+    public const WidgetContexts = 'x-stud-widget-contexts';
+
+    /**
      * Every `x-` keyword this package owns / emits.
      *
      * @return list<string>
      */
     public static function owned(): array
     {
-        return [self::Widget, self::WidgetOptions];
+        return [self::Widget, self::WidgetOptions, self::WidgetContexts];
     }
 }

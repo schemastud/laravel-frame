@@ -2,6 +2,8 @@
 
 namespace Schemastud\Frame;
 
+use Schemastud\Frame\Strategies\ResourceRefStrategy;
+
 /**
  * The JSON-Schema extension keywords THIS package owns (the ADR-0074 owner-prefix
  * doctrine: a keyword is legitimate because a package declares it here).
@@ -28,12 +30,20 @@ class Keywords
     public const WidgetContexts = 'x-stud-widget-contexts';
 
     /**
+     * A property references rows of a registered frame resource — the picker's
+     * config bag (resource/value/label/multiple/scope) projected from
+     * `#[ResourceRef]` by {@see ResourceRefStrategy}.
+     * The frontend ResourceRefWidget reads this to fetch options and render a select.
+     */
+    public const ResourceRef = 'x-stud-resource-ref';
+
+    /**
      * Every `x-` keyword this package owns / emits.
      *
      * @return list<string>
      */
     public static function owned(): array
     {
-        return [self::Widget, self::WidgetOptions, self::WidgetContexts];
+        return [self::Widget, self::WidgetOptions, self::WidgetContexts, self::ResourceRef];
     }
 }

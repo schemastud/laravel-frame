@@ -32,7 +32,7 @@ class AdminResourceDefinition extends Data
      * @param  class-string|null  $query  data-filters query class (optional filter schema)
      * @param  class-string|null  $editData  rare escape-hatch edit DTO
      * @param  string|null  $policy  ability/policy key the injected can() resolves against
-     * @param  'splicewire'|'raw'  $form  per-resource default form mode
+     * @param  'enriched'|'bare'  $form  per-resource default form mode
      */
     public function __construct(
         public string $key,

@@ -30,7 +30,7 @@ class AdminResource
      * @param  class-string|null  $source  a UnionSource fusing many sub-sources; mutually exclusive with $model
      * @param  string|null  $group  nav group heading
      * @param  string|null  $icon  nav icon key
-     * @param  'splicewire'|'raw'  $form  per-resource default form mode
+     * @param  'enriched'|'bare'  $form  per-resource default form mode
      * @param  class-string|null  $editData  rare escape-hatch edit DTO (input-shape divergence)
      * @param  string|null  $policy  ability/policy key the injected can() resolves against
      * @param  class-string|null  $query  data-filters query class (optional filter schema)
@@ -45,7 +45,7 @@ class AdminResource
         public ?string $source = null,
         public ?string $group = null,
         public ?string $icon = null,
-        public string $form = 'raw',
+        public string $form = 'bare',
         public ?string $editData = null,
         public ?string $policy = null,
         public ?string $query = null,

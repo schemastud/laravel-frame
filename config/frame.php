@@ -29,14 +29,28 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Manifest route
+    | Server surface (routes)
     |--------------------------------------------------------------------------
-    | Whether the package registers GET {prefix}/manifest, and the middleware +
-    | prefix it applies. A host that mounts the manifest under its own gated group
-    | should set 'register_route' => false and wire FrameManifestController itself
-    | (numero mounts it under the operator group behind can:bypass-marquee).
+    | Frame's whole server surface mounts under one prefix + middleware, so a host
+    | moves the CMS by flipping 'route_prefix' (e.g. 'frame' → '~/beam' — a '~/'
+    | sentinel fences the gated admin off from public content routes) and gates it
+    | via 'middleware'.
+    |
+    | - register_route:           master switch for the package route group
+    |                             (manifest + resource socket). A host that mounts
+    |                             everything under its own group sets this false.
+    | - register_resource_routes: whether the group also ships the resource CRUD +
+    |                             facets socket ({prefix}/resources/*,
+    |                             {prefix}/filter-schema|filter-options|saved-filters).
+    |                             The socket resolves its per-resource plug through the
+    |                             host-bound FrameResourceHandlerResolver /
+    |                             FrameFilterProvider contracts; a host still hand-rolling
+    |                             its own resource endpoints sets this false (manifest
+    |                             only). SavedFilterStore is optional — unbound falls back
+    |                             to a transient saved-views stub.
     */
     'register_route' => true,
+    'register_resource_routes' => true,
     'route_prefix' => 'frame',
     'middleware' => ['web'],
 ];

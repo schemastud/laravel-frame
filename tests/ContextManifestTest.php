@@ -8,6 +8,8 @@ use Schemastud\Frame\Registry\ContextManifest;
 use Schemastud\Frame\Tests\Fixtures\BadClassContextData;
 use Schemastud\Frame\Tests\Fixtures\ContactResourceData;
 use Schemastud\Frame\Tests\Fixtures\RowActionsResourceData;
+use Schemastud\Frame\Tests\Fixtures\SampleModel;
+use Schemastud\Frame\Tests\Fixtures\SampleResourceData;
 
 /**
  * The {byNode, inherits, known} render-context block for one resource's Data class —
@@ -56,6 +58,33 @@ class ContextManifestTest extends TestCase
 
         $this->assertFalse($byNode['secret']['list-column']['participates']);
         $this->assertTrue($byNode['graph']['edit']['heavyweight']);
+    }
+
+    public function test_layout_is_null_when_the_resource_declares_none(): void
+    {
+        // ContactResourceData carries no #[AdminResource(layout: …)] — the field is
+        // present but null, so the socket falls back to SingleColumn (ticket 09/31).
+        $this->assertArrayHasKey('layout', $this->block());
+        $this->assertNull($this->block()['layout']);
+    }
+
+    public function test_layout_is_emitted_from_the_admin_resource_attribute(): void
+    {
+        $block = (new ContextManifest)->forResource(SampleResourceData::class);
+
+        $this->assertSame('subnav', $block['layout']);
+    }
+
+    public function test_invalid_layout_on_the_attribute_throws(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        new \Schemastud\Frame\Attributes\AdminResource(
+            key: 'x',
+            label: 'X',
+            model: SampleModel::class,
+            layout: 'bogus',
+        );
     }
 
     public function test_unknown_context_throws(): void

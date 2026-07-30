@@ -23,6 +23,7 @@ use Spatie\LaravelData\Data;
     section: 'lab',
     navOrder: 3,
     routeName: 'samples.index',
+    layout: 'subnav',
 )]
 class SampleResourceData extends Data
 {

@@ -24,6 +24,15 @@ use Attribute;
 class AdminResource
 {
     /**
+     * The three sanctioned inner-layout grammars (component-seams ticket 02) a
+     * resource surface may declare, in the FrameLayout socket's `variant` tokens
+     * (component-seams ticket 09): `single` (SingleColumn), `subnav` (SubNavColumn),
+     * `master-detail` (MasterDetail). Emitted verbatim on the resource's
+     * ContextManifest so a host resolves `variant={manifest.layout}` (ticket 31).
+     */
+    public const Layouts = ['single', 'subnav', 'master-detail'];
+
+    /**
      * @param  string  $key  resource slug ('axis-leaf', 'layers', …)
      * @param  string  $label  nav label
      * @param  class-string|null  $model  the Eloquent model (null for a source-backed union resource)
@@ -37,6 +46,7 @@ class AdminResource
      * @param  string|null  $section  the host sitemap section this resource auto-attaches into (nav wiring); null = not in the primary nav
      * @param  int|null  $navOrder  placement within the section (lower first; null sorts after ordered siblings)
      * @param  string|null  $routeName  stable route identity a host binds the generated leaf under; null = the host derives one from `key`
+     * @param  'single'|'subnav'|'master-detail'|null  $layout  the sanctioned inner-layout grammar this resource's surface uses (ticket 02); emitted on the ContextManifest so a host resolves the FrameLayout `variant` from the manifest. null = unspecified → the socket's `SingleColumn` fallback (ticket 09).
      */
     public function __construct(
         public string $key,
@@ -52,5 +62,12 @@ class AdminResource
         public ?string $section = null,
         public ?int $navOrder = null,
         public ?string $routeName = null,
-    ) {}
+        public ?string $layout = null,
+    ) {
+        if ($this->layout !== null && ! in_array($this->layout, self::Layouts, true)) {
+            throw new \InvalidArgumentException(
+                "Unknown resource layout [{$this->layout}]; expected one of: ".implode(', ', self::Layouts).', or null.'
+            );
+        }
+    }
 }

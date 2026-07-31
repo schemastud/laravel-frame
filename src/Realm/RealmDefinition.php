@@ -21,7 +21,10 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * @property bool        $central   whether this is THE central/operator realm (never tenant-scoped) — the
  *                                  one bit the route builder reads; identity otherwise rides `$key`
  *                                  (RealmScope retired, ADR-0156 amendment / realm-architecture ticket 08)
- * @property bool        $tenancy   whether this realm resolves a tenant (per-realm optional; not a global switch)
+ *
+ * Tenant resolvability is NOT carried here — it is a deployment-shape concern (is a tenant resolvable on
+ * this install?), re-homed onto an injected `Splicewire\Beam\Realm\Contracts\TenantResolver` so the
+ * agnostic shape stays purely structural (realm-architecture ticket 08, slice B).
  */
 #[TypeScript]
 class RealmDefinition extends Data
@@ -31,6 +34,5 @@ class RealmDefinition extends Data
         public string $routeBase,
         public ?string $guard,
         public bool $central,
-        public bool $tenancy,
     ) {}
 }

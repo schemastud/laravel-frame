@@ -2,11 +2,11 @@
 
 namespace Schemastud\Frame\Http\Controllers;
 
-use Schemastud\Frame\Registry\AdminResourceRegistry;
+use Schemastud\Frame\Contracts\ResourceRegistry;
 use Schemastud\Frame\Registry\ContextManifest;
 
 /**
- * GET /frame/manifest -> { resources: AdminResourceDefinition[], contexts: {key => block} }.
+ * GET /frame/manifest -> { resources: ResourceDefinition[], contexts: {key => block} }.
  * Resolves the whole editor wiring for every registered resource; the frontend type
  * IS this projection (generate-once parity). Middleware/gating is the host's — the
  * route applies config('frame.middleware') so a host can put the surface behind its
@@ -19,14 +19,14 @@ use Schemastud\Frame\Registry\ContextManifest;
  */
 class FrameManifestController
 {
-    public function __invoke(AdminResourceRegistry $registry): array
+    public function __invoke(ResourceRegistry $registry): array
     {
         $manifest = new ContextManifest;
 
         $contexts = [];
 
         foreach ($registry->all() as $definition) {
-            $contexts[$definition->key] = $manifest->forResource($definition->data);
+            $contexts[$definition->key] = $manifest->forResource($definition->data, $definition->layout);
         }
 
         return [

@@ -3,7 +3,11 @@
 namespace Schemastud\Frame\Tests;
 
 use Schemastud\Frame\Contracts\ResolvedUnionItem;
+use Schemastud\Frame\Contracts\ResourceRegistry;
 use Schemastud\Frame\Contracts\UnionQuery;
+use Schemastud\Frame\Registry\InMemoryResourceRegistry;
+use Schemastud\Frame\Registry\NavMetadata;
+use Schemastud\Frame\Registry\ResourceDefinition;
 use Schemastud\Frame\Tests\Fixtures\FixtureUnionSource;
 use Schemastud\Frame\Tests\Fixtures\ReviewFixtureResourceData;
 use Schemastud\Frame\Tests\Fixtures\ReviewItemFixture;
@@ -19,7 +23,23 @@ class UnionSourceTest extends TestCase
     {
         parent::getEnvironmentSetUp($app);
 
-        $app['config']->set('frame.resources', [ReviewFixtureResourceData::class]);
+        // Register a service-kind definition directly through the agnostic port (the
+        // producer's discovery is exercised in beam; frame only serves what it is handed).
+        $app->singleton(ResourceRegistry::class, function () {
+            return (new InMemoryResourceRegistry)->register(new ResourceDefinition(
+                key: 'review-fixture',
+                sourceKind: 'service',
+                model: null,
+                source: FixtureUnionSource::class,
+                data: ReviewFixtureResourceData::class,
+                creatable: false,
+                query: null,
+                editData: null,
+                policy: 'review',
+                form: 'bare',
+                nav: new NavMetadata(label: 'Review', group: 'Workflow', icon: 'inbox'),
+            ));
+        });
     }
 
     public function test_index_paginates_the_merged_stream_and_the_cursor_advances(): void

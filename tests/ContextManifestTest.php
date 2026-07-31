@@ -8,8 +8,6 @@ use Schemastud\Frame\Registry\ContextManifest;
 use Schemastud\Frame\Tests\Fixtures\BadClassContextData;
 use Schemastud\Frame\Tests\Fixtures\ContactResourceData;
 use Schemastud\Frame\Tests\Fixtures\RowActionsResourceData;
-use Schemastud\Frame\Tests\Fixtures\SampleModel;
-use Schemastud\Frame\Tests\Fixtures\SampleResourceData;
 
 /**
  * The {byNode, inherits, known} render-context block for one resource's Data class —
@@ -60,31 +58,20 @@ class ContextManifestTest extends TestCase
         $this->assertTrue($byNode['graph']['edit']['heavyweight']);
     }
 
-    public function test_layout_is_null_when_the_resource_declares_none(): void
+    public function test_layout_is_null_when_no_layout_is_handed_in(): void
     {
-        // ContactResourceData carries no #[AdminResource(layout: …)] — the field is
-        // present but null, so the socket falls back to SingleColumn (ticket 09/31).
+        // The producer hands frame the resource's declared layout via ResourceDefinition;
+        // omitting it leaves the field present-but-null, so the socket falls back to
+        // SingleColumn (ticket 09/31).
         $this->assertArrayHasKey('layout', $this->block());
         $this->assertNull($this->block()['layout']);
     }
 
-    public function test_layout_is_emitted_from_the_admin_resource_attribute(): void
+    public function test_layout_is_emitted_from_the_handed_in_definition_layout(): void
     {
-        $block = (new ContextManifest)->forResource(SampleResourceData::class);
+        $block = (new ContextManifest)->forResource(ContactResourceData::class, 'subnav');
 
         $this->assertSame('subnav', $block['layout']);
-    }
-
-    public function test_invalid_layout_on_the_attribute_throws(): void
-    {
-        $this->expectException(InvalidArgumentException::class);
-
-        new \Schemastud\Frame\Attributes\AdminResource(
-            key: 'x',
-            label: 'X',
-            model: SampleModel::class,
-            layout: 'bogus',
-        );
     }
 
     public function test_unknown_context_throws(): void

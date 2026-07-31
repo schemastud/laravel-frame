@@ -9,8 +9,8 @@ use ReflectionClass;
 use Schemastud\DataSchemas\Generators\JsonSchemaGenerator;
 use Schemastud\Frame\Contracts\FrameFilterProvider;
 use Schemastud\Frame\Contracts\FrameResourceHandlerResolver;
+use Schemastud\Frame\Contracts\ResourceRegistry;
 use Schemastud\Frame\Contracts\SavedFilterStore;
-use Schemastud\Frame\Registry\AdminResourceRegistry;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -28,7 +28,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 class FrameResourceController
 {
     public function __construct(
-        protected AdminResourceRegistry $registry,
+        protected ResourceRegistry $registry,
         protected FrameResourceHandlerResolver $resources,
         protected FrameFilterProvider $filters,
     ) {}

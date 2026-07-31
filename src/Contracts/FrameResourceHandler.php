@@ -3,7 +3,7 @@
 namespace Schemastud\Frame\Contracts;
 
 use Schemastud\Frame\Http\Controllers\FrameResourceController;
-use Schemastud\Frame\Registry\AdminResourceDefinition;
+use Schemastud\Frame\Registry\ResourceDefinition;
 
 /**
  * The per-resource CRUD plug behind Frame's resource socket. The package ships the
@@ -23,7 +23,7 @@ interface FrameResourceHandler
      *
      * @return array<int, array<string, mixed>>
      */
-    public function index(AdminResourceDefinition $definition, array $params): array;
+    public function index(ResourceDefinition $definition, array $params): array;
 
     /**
      * One record projected through the edit shape (editData ?? data) to pre-fill the
@@ -31,22 +31,22 @@ interface FrameResourceHandler
      *
      * @return array<string, mixed>
      */
-    public function show(AdminResourceDefinition $definition, string $id): array;
+    public function show(ResourceDefinition $definition, string $id): array;
 
     /**
      * Create from input; returns the freshly-projected row.
      *
      * @return array<string, mixed>
      */
-    public function store(AdminResourceDefinition $definition, array $input): array;
+    public function store(ResourceDefinition $definition, array $input): array;
 
     /**
      * Update from input; returns the freshly-projected row.
      *
      * @return array<string, mixed>
      */
-    public function update(AdminResourceDefinition $definition, string $id, array $input): array;
+    public function update(ResourceDefinition $definition, string $id, array $input): array;
 
     /** Remove a record. */
-    public function destroy(AdminResourceDefinition $definition, string $id): void;
+    public function destroy(ResourceDefinition $definition, string $id): void;
 }

@@ -2,22 +2,14 @@
 
 namespace Schemastud\Frame\Tests\Fixtures;
 
-use Schemastud\Frame\Attributes\AdminResource;
 use Spatie\LaravelData\Data;
 
 /**
- * A source-backed (union) frame resource: `source` selects a UnionSource instead of
- * a single Eloquent `model`. Registration nulls out editData/query and marks it
- * not-creatable — a union is read + delegated-act only.
+ * The read projection of a source-backed (union) frame resource: `source` selects a
+ * UnionSource instead of a single Eloquent `model`. The resource DECLARATION lives with
+ * the producer; here the union definition is registered directly in the test. A union is
+ * read + delegated-act only (not creatable, no editData/query).
  */
-#[AdminResource(
-    key: 'review-fixture',
-    label: 'Review',
-    source: FixtureUnionSource::class,
-    group: 'Workflow',
-    icon: 'inbox',
-    policy: 'review',
-)]
 class ReviewFixtureResourceData extends Data
 {
     /**

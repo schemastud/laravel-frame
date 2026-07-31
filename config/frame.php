@@ -4,31 +4,6 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Resource classes
-    |--------------------------------------------------------------------------
-    | Explicit #[AdminResource]-annotated Data class-strings to register at boot.
-    | Each is reflected for its #[AdminResource] attribute and becomes a manifest
-    | entry. This is the deterministic discovery path (data-filters' ResourceRegistry
-    | shape); attribute-less resources register imperatively via ->register().
-    */
-    'resources' => [
-        // App\Data\LayerData::class,
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Discover paths
-    |--------------------------------------------------------------------------
-    | Optional filesystem paths scanned at boot for #[AdminResource] classes (the
-    | CompositionIntakeRegistry scan pattern). A path may point at a whole Data
-    | directory; only annotated classes are registered.
-    */
-    'discover_paths' => [
-        // app_path('Data'),
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
     | Server surface (routes)
     |--------------------------------------------------------------------------
     | Frame's whole server surface mounts under one prefix + middleware, so a host
@@ -48,6 +23,10 @@ return [
     |                             its own resource endpoints sets this false (manifest
     |                             only). SavedFilterStore is optional — unbound falls back
     |                             to a transient saved-views stub.
+    |
+    | Resource DECLARATION + discovery is NOT frame's concern: a producer above frame
+    | (the consuming CMS engine's resource registry) owns which resources exist and
+    | binds frame's ResourceRegistry port. Frame only serves what it is handed.
     */
     'register_route' => true,
     'register_resource_routes' => true,

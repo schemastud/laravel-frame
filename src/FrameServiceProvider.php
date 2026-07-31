@@ -2,7 +2,6 @@
 
 namespace Schemastud\Frame;
 
-use Schemastud\Frame\Registry\AdminResourceRegistry;
 use Schemastud\Frame\Strategies\ReadOnlyAttributeStrategy;
 use Schemastud\Frame\Strategies\ResourceRefStrategy;
 use Schemastud\Frame\Strategies\WidgetAttributesStrategy;
@@ -19,15 +18,9 @@ class FrameServiceProvider extends PackageServiceProvider
             ->hasConfigFile('frame');
     }
 
-    public function packageRegistered(): void
-    {
-        $this->app->singleton(AdminResourceRegistry::class, fn () => new AdminResourceRegistry);
-    }
-
     public function packageBooted(): void
     {
         $this->registerSchemaStrategies();
-        $this->discoverResources();
         $this->registerManifestRoute();
     }
 
@@ -48,18 +41,6 @@ class FrameServiceProvider extends PackageServiceProvider
         }
 
         config(['data-schemas.strategies' => $strategies]);
-    }
-
-    /**
-     * Boot-time discovery: reflect the configured #[AdminResource] classes and scan
-     * the configured discover paths into the singleton registry.
-     */
-    protected function discoverResources(): void
-    {
-        $this->app->make(AdminResourceRegistry::class)->discover(
-            config('frame.resources', []),
-            config('frame.discover_paths', []),
-        );
     }
 
     protected function registerManifestRoute(): void

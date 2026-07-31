@@ -2,9 +2,7 @@
 
 namespace Schemastud\Frame\Registry;
 
-use ReflectionAttribute;
 use ReflectionClass;
-use Schemastud\Frame\Attributes\AdminResource;
 
 /**
  * Builds the `{byNode, inherits, known}` render-context block for one resource's
@@ -24,9 +22,10 @@ use Schemastud\Frame\Attributes\AdminResource;
 class ContextManifest
 {
     /**
+     * @param  'single'|'subnav'|'master-detail'|null  $layout  the resource's declared inner-layout grammar, handed in from its {@see ResourceDefinition} (frame no longer reflects the producer's attribute for it)
      * @return array{byNode: array<string, array<string, mixed>>, inherits: array<string, list<string>>, known: list<string>, layout: 'single'|'subnav'|'master-detail'|null}
      */
-    public function forResource(string $dataClass): array
+    public function forResource(string $dataClass, ?string $layout = null): array
     {
         $reflection = new ReflectionClass($dataClass);
         $projector = new WidgetContextProjector;
@@ -54,29 +53,11 @@ class ContextManifest
             'inherits' => ['row-cell' => ['edit']],
             'known' => WidgetContextProjector::KnownContexts,
             // The resource's declared inner-layout grammar (ticket 31) — the FrameLayout
-            // socket's `variant` token read off #[AdminResource(layout: …)]. Null when the
-            // resource is layout-agnostic (no attribute, or `layout` unset); the socket then
-            // falls back to SingleColumn (ticket 09). A fixture/DTO without the attribute
-            // simply emits null — this stays a pure additive field.
-            'layout' => $this->layoutFor($reflection),
+            // socket's `variant` token. Handed in from the resource's ResourceDefinition
+            // (the producer read it off its own declaration); frame no longer reflects a
+            // producer attribute for it. Null when the resource is layout-agnostic; the
+            // socket then falls back to SingleColumn (ticket 09).
+            'layout' => $layout,
         ];
-    }
-
-    /**
-     * The `layout` the resource declares on its `#[AdminResource]` attribute, or null
-     * when the class carries no attribute or leaves `layout` unset. Validated at the
-     * attribute's constructor, so it is already one of {@see AdminResource::Layouts}.
-     *
-     * @param  ReflectionClass<object>  $reflection
-     */
-    private function layoutFor(ReflectionClass $reflection): ?string
-    {
-        $attributes = $reflection->getAttributes(AdminResource::class, ReflectionAttribute::IS_INSTANCEOF);
-
-        if ($attributes === []) {
-            return null;
-        }
-
-        return $attributes[0]->newInstance()->layout;
     }
 }

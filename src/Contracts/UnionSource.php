@@ -6,7 +6,7 @@ use Illuminate\Contracts\Pagination\CursorPaginator;
 
 /**
  * A custom source backing a frame resource — fuses N underlying models/services into
- * one list+detail resource. Named by an #[AdminResource(source: …)] class-string and
+ * one list+detail resource. Named by a resource declaration (source: …) class-string and
  * container-resolved at REQUEST time (app($def->source)), never eagerly at boot, so
  * it can take constructor injection (tenant connection, the sub-source repos). Frame
  * owns no list/record runtime; a host controller calls this, frame only wires it.

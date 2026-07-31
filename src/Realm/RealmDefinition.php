@@ -18,7 +18,9 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * @property string      $key       stable realm identity; the manifest route default + resource-realm map key
  * @property string      $routeBase the SPA mount base for this realm's generated route tree (`/admin`, `/`, `/settings`)
  * @property string|null $guard     the default host guard key wrapping this realm's leaves (`root` → RequireRoot; null = the shell's own auth)
- * @property RealmScope  $scope     the identity axis — `central` · `tenant` · `user`
+ * @property bool        $central   whether this is THE central/operator realm (never tenant-scoped) — the
+ *                                  one bit the route builder reads; identity otherwise rides `$key`
+ *                                  (RealmScope retired, ADR-0156 amendment / realm-architecture ticket 08)
  * @property bool        $tenancy   whether this realm resolves a tenant (per-realm optional; not a global switch)
  */
 #[TypeScript]
@@ -28,7 +30,7 @@ class RealmDefinition extends Data
         public string $key,
         public string $routeBase,
         public ?string $guard,
-        public RealmScope $scope,
+        public bool $central,
         public bool $tenancy,
     ) {}
 }

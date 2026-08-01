@@ -11,7 +11,7 @@ use Schemastud\Frame\Registry\ResourceDefinition;
  * that drives `@schemastud/frame`'s ListShell / EditShell over `{prefix}/resources/*`);
  * a host supplies the non-uniform plug — one handler per resource archetype, resolved
  * through a {@see FrameResourceHandlerResolver}. The socket is persistence-agnostic:
- * whether a row is a plain Eloquent model or a beam `SchemaRecord` projection is the
+ * whether a row is a plain Eloquent model or a beam particle projection is the
  * handler's concern, never the controller's.
  */
 interface FrameResourceHandler

@@ -19,7 +19,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  * facets bar over `{prefix}/filter-schema|filter-options|saved-filters`. Generic over
  * a registry of resources; the non-uniform per-resource CRUD is the host's plug,
  * resolved through {@see FrameResourceHandlerResolver}. Persistence-agnostic: whether a
- * row is a plain model or a beam `SchemaRecord` projection is the handler's concern.
+ * row is a plain model or a beam particle projection is the handler's concern.
  *
  * Envelopes (unchanged from the ported host shape, so any existing JS transport is a
  * straight lift): list → `{data,total,page,perPage}`, single → `{data}`, schema → the

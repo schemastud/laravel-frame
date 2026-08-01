@@ -36,6 +36,7 @@ class ResourceDefinition extends Data
      * @param  class-string  $data  read/index-projection Data class (list rows)
      * @param  bool  $creatable  whether the host may emit a create affordance (false for a union)
      * @param  bool  $deletable  whether the host may emit a delete affordance and the generic handler honours a Frame destroy (independent of $creatable — a resource may be delete-only, e.g. a list you may prune but not create/edit). Defaults true so every existing resource's delete follows its create gate; a producer projects it explicitly to open destroy on an otherwise not-creatable resource.
+     * @param  bool  $editable  whether the host may emit an edit affordance and the generic handler honours a Frame show/update (independent of $creatable — a resource may be create-and-delete-only, never edited in place, e.g. an invitation: sent + revoked but not edited). Defaults true so every existing resource's edit follows its create gate; a producer projects it explicitly to CLOSE in-place edit on an otherwise creatable resource.
      * @param  class-string|null  $query  data-filters query class (optional filter schema)
      * @param  class-string|null  $editData  rare escape-hatch edit DTO
      * @param  string|null  $policy  ability/policy key the injected can() resolves against
@@ -56,6 +57,7 @@ class ResourceDefinition extends Data
         public NavMetadata $nav,
         public ?string $layout = null,
         public bool $deletable = true,
+        public bool $editable = true,
     ) {}
 
     /**

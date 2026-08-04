@@ -70,6 +70,41 @@ class ManifestTest extends TestCase
         $this->assertSame('samples.index', $def->nav->routeName);
     }
 
+    public function test_the_three_write_gates_and_the_show_gate_default_true(): void
+    {
+        // Every gate defaults true so an existing definition (which sets none) is unchanged:
+        // create/edit/delete follow the create gate, and `showable` (F04) is readable ⇒ showable.
+        $def = $this->app->make(ResourceRegistry::class)->get('sample');
+
+        $this->assertTrue($def->creatable);
+        $this->assertTrue($def->editable);
+        $this->assertTrue($def->deletable);
+        $this->assertTrue($def->showable);
+    }
+
+    public function test_a_definition_can_be_showable_yet_not_editable(): void
+    {
+        // The F04 widening: a read-only detail — served show, closed in-place edit.
+        $def = new ResourceDefinition(
+            key: 'read-only-detail',
+            sourceKind: 'model',
+            model: SampleModel::class,
+            source: null,
+            data: SampleResourceData::class,
+            creatable: false,
+            query: null, editData: null, policy: null, form: 'raw',
+            nav: new NavMetadata(label: 'Read only'),
+            deletable: false,
+            editable: false,
+            showable: true,
+        );
+
+        $this->assertFalse($def->creatable);
+        $this->assertFalse($def->editable);
+        $this->assertFalse($def->deletable);
+        $this->assertTrue($def->showable);
+    }
+
     public function test_register_adds_a_definition(): void
     {
         $registry = $this->app->make(ResourceRegistry::class);

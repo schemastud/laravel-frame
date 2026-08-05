@@ -63,6 +63,77 @@ class ResourceDefinition extends Data
     ) {}
 
     /**
+     * Return an immutable copy with the given fields overlaid — an agnostic copy-wither. Every param is
+     * nullable and defaults to null meaning "keep the current value"; a non-null argument replaces that
+     * field. The nested {@see NavMetadata} is likewise overlaid field-by-field and rebuilt fresh, so the
+     * copy shares no mutable nav object with the original.
+     *
+     * This is deliberately realm-agnostic: frame knows nothing about realms. A producer that wants a
+     * realm-varied projection composes this wither itself (e.g. `$def->withOverrides(policy: $realmPolicy)`)
+     * — the realm concept never enters frame.
+     *
+     * Named `withOverrides` (not `with`) because the spatie `Data` base class already reserves `with()`
+     * for its additional-data hook (no-arg, returns array); this is the copy-wither.
+     *
+     * @param  'model'|'service'|null  $sourceKind
+     * @param  class-string|null  $model
+     * @param  class-string|null  $source
+     * @param  class-string|null  $data
+     * @param  class-string|null  $query
+     * @param  class-string|null  $editData
+     * @param  'enriched'|'bare'|null  $form
+     * @param  'single'|'subnav'|'master-detail'|null  $layout
+     */
+    public function withOverrides(
+        ?string $key = null,
+        ?string $sourceKind = null,
+        ?string $model = null,
+        ?string $source = null,
+        ?string $data = null,
+        ?bool $creatable = null,
+        ?string $query = null,
+        ?string $editData = null,
+        ?string $policy = null,
+        ?string $form = null,
+        ?string $layout = null,
+        ?bool $deletable = null,
+        ?bool $editable = null,
+        ?bool $showable = null,
+        // NavMetadata overlay — each rebuilds the nav field-by-field:
+        ?string $label = null,
+        ?string $group = null,
+        ?string $icon = null,
+        ?string $section = null,
+        ?int $navOrder = null,
+        ?string $routeName = null,
+    ): static {
+        return new static(
+            key: $key ?? $this->key,
+            sourceKind: $sourceKind ?? $this->sourceKind,
+            model: $model ?? $this->model,
+            source: $source ?? $this->source,
+            data: $data ?? $this->data,
+            creatable: $creatable ?? $this->creatable,
+            query: $query ?? $this->query,
+            editData: $editData ?? $this->editData,
+            policy: $policy ?? $this->policy,
+            form: $form ?? $this->form,
+            nav: new NavMetadata(
+                label: $label ?? $this->nav->label,
+                group: $group ?? $this->nav->group,
+                icon: $icon ?? $this->nav->icon,
+                section: $section ?? $this->nav->section,
+                navOrder: $navOrder ?? $this->nav->navOrder,
+                routeName: $routeName ?? $this->nav->routeName,
+            ),
+            layout: $layout ?? $this->layout,
+            deletable: $deletable ?? $this->deletable,
+            editable: $editable ?? $this->editable,
+            showable: $showable ?? $this->showable,
+        );
+    }
+
+    /**
      * Lazily resolve the backing UnionSource from the container at REQUEST time
      * (never eagerly at boot), so it can take constructor injection. Throws for a
      * model-backed resource, which has no source.

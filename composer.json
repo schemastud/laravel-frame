@@ -1,6 +1,6 @@
 {
     "name": "schemastud/laravel-frame",
-    "description": "The batteries-UX backend rung for schema-driven admin editors: the #[AdminResource] registry (AdminResourceDefinition), the #[Widget] -> x-stud-widget projector, #[ReadOnlyField], and a served GET /frame/manifest. Sits one level above a filter-schema controller; resolves a resource key to its whole editor wiring. Pairs with @schemastud/frame on the JS side.",
+    "description": "The batteries-UX backend rung for schema-driven admin editors: the resource-definition registry (ResourceDefinition), the #[Widget] -> x-stud-widget projector, #[ReadOnlyField], and a served GET /frame/manifest. Sits one level above a filter-schema controller; resolves a resource key to its whole editor wiring. Pairs with @schemastud/frame on the JS side.",
     "type": "library",
     "license": "MIT",
     "require": {
@@ -20,7 +20,7 @@
     },
     "suggest": {
         "rushing/laravel-data-filters": "Reuse a resource's data-filters query/filter schema for the ListShell facets bar.",
-        "spatie/laravel-typescript-transformer": "Emit the AdminResourceDefinition TS type so the frontend manifest entry IS the backend projection."
+        "spatie/laravel-typescript-transformer": "Emit the ResourceDefinition TS type so the frontend manifest entry IS the backend projection."
     },
     "repositories": [
         {

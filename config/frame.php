@@ -32,4 +32,26 @@ return [
     'register_resource_routes' => true,
     'route_prefix' => 'frame',
     'middleware' => ['web'],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Per-realm resource presentation overrides (RDU-03)
+    |--------------------------------------------------------------------------
+    | A realm may PRESENT the same resource differently — a different label,
+    | group, form, layout, or a read-only gate — WITHOUT the resource declaration
+    | ever naming a realm (declarations stay realm-agnostic; frame stays agnostic).
+    | The producer above frame (beam's RealmResourceRegistry) reads this map and
+    | overlays a resource's projection for the target realm; frame is handed the
+    | finished ResourceDefinition and never sees a realm.
+    |
+    | Shape: ['<realm>' => ['<resource-key>' => ['<presentation-field>' => <value>]]].
+    | Only PRESENTATION fields overlay (label, group, icon, section, navOrder,
+    | routeName, form, layout, editData, policy, query, readOnly, deletable,
+    | editable, showable) — runtime fields (model/data/hooks) never vary by realm.
+    | A non-null field overlays the base; an absent field inherits.
+    |
+    | Ships EMPTY — INERT by default (identity projection in every realm), no
+    | behavior change until a host seeds real overrides.
+    */
+    'realm_resource_overrides' => [],
 ];

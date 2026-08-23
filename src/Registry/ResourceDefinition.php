@@ -2,8 +2,6 @@
 
 namespace Schemastud\Frame\Registry;
 
-use InvalidArgumentException;
-use Schemastud\Frame\Contracts\UnionSource;
 use Schemastud\Frame\Http\Controllers\FrameManifestController;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
@@ -30,9 +28,7 @@ class ResourceDefinition extends Data
 {
     /**
      * @param  string  $key  resource slug
-     * @param  'model'|'service'  $sourceKind  discriminator — an Eloquent model, or a custom UnionSource
      * @param  class-string|null  $model  Eloquent model (null for a service-backed union resource)
-     * @param  class-string|null  $source  UnionSource class-string (null for a model-backed resource)
      * @param  class-string  $data  read/index-projection Data class (list rows)
      * @param  bool  $creatable  whether the host may emit a create affordance (false for a union)
      * @param  bool  $deletable  whether the host may emit a delete affordance and the generic handler honours a Frame destroy (independent of $creatable — a resource may be delete-only, e.g. a list you may prune but not create/edit). Defaults true so every existing resource's delete follows its create gate; a producer projects it explicitly to open destroy on an otherwise not-creatable resource.
@@ -46,9 +42,7 @@ class ResourceDefinition extends Data
      */
     public function __construct(
         public string $key,
-        public string $sourceKind,
         public ?string $model,
-        public ?string $source,
         public string $data,
         public bool $creatable,
         public ?string $query,
@@ -75,9 +69,7 @@ class ResourceDefinition extends Data
      * Named `withOverrides` (not `with`) because the spatie `Data` base class already reserves `with()`
      * for its additional-data hook (no-arg, returns array); this is the copy-wither.
      *
-     * @param  'model'|'service'|null  $sourceKind
      * @param  class-string|null  $model
-     * @param  class-string|null  $source
      * @param  class-string|null  $data
      * @param  class-string|null  $query
      * @param  class-string|null  $editData
@@ -86,9 +78,7 @@ class ResourceDefinition extends Data
      */
     public function withOverrides(
         ?string $key = null,
-        ?string $sourceKind = null,
         ?string $model = null,
-        ?string $source = null,
         ?string $data = null,
         ?bool $creatable = null,
         ?string $query = null,
@@ -109,9 +99,7 @@ class ResourceDefinition extends Data
     ): static {
         return new static(
             key: $key ?? $this->key,
-            sourceKind: $sourceKind ?? $this->sourceKind,
             model: $model ?? $this->model,
-            source: $source ?? $this->source,
             data: $data ?? $this->data,
             creatable: $creatable ?? $this->creatable,
             query: $query ?? $this->query,
@@ -131,21 +119,5 @@ class ResourceDefinition extends Data
             editable: $editable ?? $this->editable,
             showable: $showable ?? $this->showable,
         );
-    }
-
-    /**
-     * Lazily resolve the backing UnionSource from the container at REQUEST time
-     * (never eagerly at boot), so it can take constructor injection. Throws for a
-     * model-backed resource, which has no source.
-     */
-    public function resolveSource(): UnionSource
-    {
-        if ($this->source === null) {
-            throw new InvalidArgumentException(
-                "Resource [{$this->key}] is model-backed (sourceKind: {$this->sourceKind}); it has no UnionSource."
-            );
-        }
-
-        return app($this->source);
     }
 }

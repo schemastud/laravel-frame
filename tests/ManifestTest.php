@@ -32,9 +32,7 @@ class ManifestTest extends TestCase
     {
         return new ResourceDefinition(
             key: 'sample',
-            sourceKind: 'model',
             model: SampleModel::class,
-            source: null,
             data: SampleResourceData::class,
             creatable: true,
             query: null,
@@ -87,9 +85,7 @@ class ManifestTest extends TestCase
         // The F04 widening: a read-only detail — served show, closed in-place edit.
         $def = new ResourceDefinition(
             key: 'read-only-detail',
-            sourceKind: 'model',
             model: SampleModel::class,
-            source: null,
             data: SampleResourceData::class,
             creatable: false,
             query: null, editData: null, policy: null, form: 'raw',
@@ -111,9 +107,7 @@ class ManifestTest extends TestCase
 
         $registry->register(new ResourceDefinition(
             key: 'layer-nodes',
-            sourceKind: 'model',
             model: SampleModel::class,
-            source: null,
             data: SampleResourceData::class,
             creatable: true,
             query: null,
@@ -144,9 +138,7 @@ class ManifestTest extends TestCase
 
         $registry->register(new ResourceDefinition(
             key: 'layers',
-            sourceKind: 'model',
             model: SampleModel::class,
-            source: null,
             data: SampleResourceData::class,
             creatable: true,
             query: null, editData: null, policy: null, form: 'raw',
@@ -154,9 +146,7 @@ class ManifestTest extends TestCase
         ));
         $registry->register(new ResourceDefinition(
             key: 'layer-nodes',
-            sourceKind: 'model',
             model: SampleModel::class,
-            source: null,
             data: SampleResourceData::class,
             creatable: true,
             query: null, editData: null, policy: null, form: 'raw',

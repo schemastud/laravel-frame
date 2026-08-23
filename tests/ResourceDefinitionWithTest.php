@@ -18,9 +18,7 @@ class ResourceDefinitionWithTest extends TestCase
     {
         return new ResourceDefinition(
             key: 'sample',
-            sourceKind: 'model',
             model: SampleModel::class,
-            source: null,
             data: SampleResourceData::class,
             creatable: true,
             query: null,

@@ -4,6 +4,7 @@ namespace Schemastud\Frame\Tests;
 
 use InvalidArgumentException;
 use Schemastud\Frame\Attributes\WidgetIn;
+use Schemastud\Frame\Contracts\ResourceContextContributor;
 use Schemastud\Frame\Registry\ContextManifest;
 use Schemastud\Frame\Tests\Fixtures\BadClassContextData;
 use Schemastud\Frame\Tests\Fixtures\ContactResourceData;
@@ -118,5 +119,71 @@ class ContextManifestTest extends TestCase
                 'options' => ['actions' => ['publish', 'archive']],
             ],
         ], $root);
+    }
+
+    // --- The optional ResourceContextContributor plug (particle-contribution-seam ticket 19) ---
+    //
+    // Frame learns only THAT a key has extra participation. It never learns why, who added it, or
+    // that a "contribution" is a thing — so these tests exercise a port, not a producer.
+
+    public function test_no_contributor_bound_leaves_the_block_untouched(): void
+    {
+        $this->assertSame(
+            (new ContextManifest)->forResource(ContactResourceData::class),
+            (new ContextManifest)->forResource(ContactResourceData::class, null, 'contacts'),
+        );
+    }
+
+    public function test_a_contributor_with_no_nodes_for_the_key_leaves_the_block_untouched(): void
+    {
+        $manifest = new ContextManifest($this->contributor(['orders' => ['x.y' => []]]));
+
+        $this->assertSame(
+            (new ContextManifest)->forResource(ContactResourceData::class),
+            $manifest->forResource(ContactResourceData::class, null, 'contacts'),
+        );
+    }
+
+    public function test_a_contributor_adds_dotted_nodes_for_its_key(): void
+    {
+        $entry = ['list-column' => ['participates' => true, 'label' => 'Plan', 'sort' => 10]];
+
+        $byNode = (new ContextManifest($this->contributor(['contacts' => ['commerce.plan' => $entry]])))
+            ->forResource(ContactResourceData::class, null, 'contacts')['byNode'];
+
+        $this->assertSame($entry, $byNode['commerce.plan']);
+    }
+
+    public function test_the_key_is_required_for_the_plug_to_fire(): void
+    {
+        $manifest = new ContextManifest($this->contributor(['contacts' => ['commerce.plan' => ['x' => []]]]));
+
+        $this->assertArrayNotHasKey('commerce.plan', $manifest->forResource(ContactResourceData::class)['byNode']);
+    }
+
+    public function test_reflected_nodes_survive_a_contributor(): void
+    {
+        $reflected = (new ContextManifest)->forResource(ContactResourceData::class)['byNode'];
+
+        $byNode = (new ContextManifest($this->contributor(['contacts' => ['commerce.plan' => ['x' => []]]])))
+            ->forResource(ContactResourceData::class, null, 'contacts')['byNode'];
+
+        foreach ($reflected as $pointer => $map) {
+            $this->assertSame($map, $byNode[$pointer]);
+        }
+    }
+
+    /** @param  array<string, array<string, array<string, mixed>>>  $nodes */
+    private function contributor(array $nodes): ResourceContextContributor
+    {
+        return new class($nodes) implements ResourceContextContributor
+        {
+            public function __construct(private array $nodes) {}
+
+            public function nodesFor(string $key): array
+            {
+                return $this->nodes[$key] ?? [];
+            }
+        };
     }
 }

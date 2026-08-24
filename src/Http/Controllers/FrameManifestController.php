@@ -16,17 +16,24 @@ use Schemastud\Frame\Registry\ContextManifest;
  * resource-local). Additive: the `resources` shape is unchanged — the JS
  * WidgetContextRegistry reads `contexts[<key>]` for the `{byNode, inherits, known}`
  * block, or projects each property's embedded `x-stud-widget-contexts` directly.
+ *
+ * {@see ContextManifest} is RESOLVED rather than `new`'d so its optional
+ * {@see \Schemastud\Frame\Contracts\ResourceContextContributor} plug is picked up where a
+ * consumer binds one. In a pure-frame host nothing binds it, the nullable constructor
+ * argument resolves to null, and every block here is byte-identical to before.
  */
 class FrameManifestController
 {
-    public function __invoke(ResourceRegistry $registry): array
+    public function __invoke(ResourceRegistry $registry, ContextManifest $manifest): array
     {
-        $manifest = new ContextManifest;
-
         $contexts = [];
 
         foreach ($registry->all() as $definition) {
-            $contexts[$definition->key] = $manifest->forResource($definition->data, $definition->layout);
+            $contexts[$definition->key] = $manifest->forResource(
+                $definition->data,
+                $definition->layout,
+                $definition->key,
+            );
         }
 
         return [

@@ -3,6 +3,7 @@
 namespace Schemastud\Frame\Registry;
 
 use ReflectionClass;
+use Schemastud\Frame\Contracts\ResourceContextContributor;
 
 /**
  * Builds the `{byNode, inherits, known}` render-context block for one resource's
@@ -18,14 +19,32 @@ use ReflectionClass;
  *
  * The per-context projection + validation is shared with {@see WidgetContextsStrategy}
  * via {@see WidgetContextProjector}.
+ *
+ * ## Reflection is keyed by CLASS; participation may be keyed by KEY
+ *
+ * `forResource()` reflects exactly ONE Data class, and one Data class may serve more than one
+ * resource key — so a producer that adds participation per RESOURCE cannot express it through
+ * the class alone. That mismatch is why the optional {@see ResourceContextContributor} port
+ * exists and why `forResource()` takes the resource `$key` alongside its Data class: the
+ * reflection half stays class-keyed, the plug half is key-keyed, and the two merge here
+ * (particle-contribution-seam ticket 17 §A1/§A2).
+ *
+ * The port arrives by NULLABLE CONSTRUCTOR ARGUMENT, never by service location. `new
+ * ContextManifest` keeps working everywhere it already appears, a pure-frame host binds
+ * nothing and gets an unchanged block, and the class stays testable with no container.
  */
 class ContextManifest
 {
+    public function __construct(
+        protected ?ResourceContextContributor $contributor = null,
+    ) {}
+
     /**
      * @param  'single'|'subnav'|'master-detail'|null  $layout  the resource's declared inner-layout grammar, handed in from its {@see ResourceDefinition} (frame no longer reflects the producer's attribute for it)
+     * @param  string|null  $key  the resource's registry key, for the {@see ResourceContextContributor} plug. Null (or no bound port) ⇒ reflection only, which is every pure-frame host.
      * @return array{byNode: array<string, array<string, mixed>>, inherits: array<string, list<string>>, known: list<string>, layout: 'single'|'subnav'|'master-detail'|null}
      */
-    public function forResource(string $dataClass, ?string $layout = null): array
+    public function forResource(string $dataClass, ?string $layout = null, ?string $key = null): array
     {
         $reflection = new ReflectionClass($dataClass);
         $projector = new WidgetContextProjector;
@@ -46,6 +65,14 @@ class ContextManifest
             if (! empty($map)) {
                 $byNode[$property->getName()] = $map;
             }
+        }
+
+        // The plug half. Merged AFTER reflection so a contributed pointer can never silently
+        // shadow one of the resource's own properties — a contributed pointer is dotted and a
+        // reflected one is a bare property name, so the two namespaces cannot collide, but the
+        // ordering makes that an invariant rather than a coincidence.
+        if ($this->contributor !== null && $key !== null) {
+            $byNode = array_merge($byNode, $this->contributor->nodesFor($key));
         }
 
         return [

@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Str;
 use ReflectionClass;
-use Schemastud\DataSchemas\Generators\JsonSchemaGenerator;
+use Schemastud\DataSchemas\Generators\Generator;
 use Schemastud\Frame\Contracts\FrameFilterProvider;
 use Schemastud\Frame\Contracts\FrameResourceHandlerResolver;
 use Schemastud\Frame\Contracts\ResourceRegistry;
@@ -46,12 +46,43 @@ class FrameResourceController
         return $this->paginate($result, $request);
     }
 
+    /**
+     * The edit form's contract, projected through the HOST'S CONFIGURED generator chain.
+     *
+     * Was `new JsonSchemaGenerator(config('data-schemas', []))`. That construction was already
+     * correct on CONFIG; what it could not do is DISPATCH. `data-schemas.generators` is a LIST, and
+     * the rule "the first member whose `canGenerate()` accepts this class" lives only inside
+     * {@see \Schemastud\DataSchemas\Generators\ChainedGenerator} — so hand-building the default
+     * member is hand-picking it.
+     *
+     * That is not hypothetical for this controller. `~/Herd/thingsontv` configures
+     * `[BlockJsonSchemaGenerator, JsonSchemaGenerator]` and installs this package, and
+     * `BlockJsonSchemaGenerator::canGenerate()` is `isSubclassOf(Block::class)` — a `Block` IS a
+     * `Data`, so a Block-backed resource satisfies the plain generator too. The old code therefore
+     * ran the WRONG member and silently dropped the block's `#[NodeType]`/`#[NodeAttr]` bridging:
+     * an edit form missing the attributes it is supposed to edit, behind an HTTP 200.
+     *
+     * **UNGUARDED, deliberately** — the same call `splicewire/tower`'s `Api\V1\FragmentController`
+     * makes, and the opposite of the one its `CompositionProfileController` makes (that one guards,
+     * because there the schema is one field of a list response). The chain THROWS when no
+     * configured member accepts the class, where the hand-built generator generated regardless; but
+     * this endpoint's ENTIRE product is that one schema, returned raw as the response body. There is
+     * nothing to degrade to. A `canGenerate()` guard could only turn the throw into an empty
+     * document, which frame's EditShell renders as a form with no fields — the silently-wrong
+     * outcome this migration exists to remove, and worse than a 500 because a user can save it.
+     * `ChainedGenerator`'s exception already names the class and every configured generator, so the
+     * 500 is diagnostic, and its blast radius is one request rather than boot.
+     *
+     * The method NAME is load-bearing and unchanged: Wayfinder generates `export const schema` from
+     * it in 12 hosts. That constrains the signature, not the body — it has no bearing on the guard
+     * decision either way.
+     */
     public function schema(Request $request, string $resource): array
     {
         $definition = $this->definition($resource);
         $editClass = $definition->editData ?? $definition->data;
 
-        return (new JsonSchemaGenerator(config('data-schemas', [])))
+        return app(Generator::class)
             ->forRequest()
             ->generate(new ReflectionClass($editClass));
     }

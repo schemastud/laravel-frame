@@ -33,6 +33,7 @@ class FrameManifestController
                 $definition->data,
                 $definition->layout,
                 $definition->key,
+                $definition->resolvedCreateAffordance(),
             );
         }
 

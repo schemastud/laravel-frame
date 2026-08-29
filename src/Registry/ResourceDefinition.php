@@ -39,6 +39,7 @@ class ResourceDefinition extends Data
      * @param  string|null  $policy  ability/policy key the injected can() resolves against
      * @param  'enriched'|'bare'  $form  per-resource default form mode
      * @param  'single'|'subnav'|'master-detail'|null  $layout  inner-layout grammar emitted on the ContextManifest (null = the socket's SingleColumn fallback)
+     * @param  'frame'|'host'  $createAffordance  WHERE this resource's create affordance lives, and the only new slot here: `'frame'` (the default, and today's behaviour) means frame's own list Toolbar emits the "New …" button; `'host'` means the host's page chrome owns it — a title-row button, a reveal-once dialog — so frame emits none. It is a PRESENTATION slot, deliberately not a capability one: $creatable already answers "may this be created at all", and a resource can be perfectly creatable while its affordance lives somewhere frame cannot see. The two are combined into one resolved value on the {@see ContextManifest}, never on the client, so `creatable` keeps exactly one spelling.
      */
     public function __construct(
         public string $key,
@@ -54,7 +55,25 @@ class ResourceDefinition extends Data
         public bool $deletable = true,
         public bool $editable = true,
         public bool $showable = true,
+        public string $createAffordance = 'frame',
     ) {}
+
+    /**
+     * The RESOLVED create affordance emitted onto this resource's {@see ContextManifest} — the one
+     * value a frame shell reads.
+     *
+     * Two declared facts collapse into it: a resource that is not `$creatable` at all cannot have a
+     * frame-emitted create button, and a `$creatable` resource may still declare that the affordance
+     * is the HOST's. Resolving them HERE rather than on the client is what keeps `creatable` with a
+     * single spelling — a second client-side flag meaning "sort of creatable" is precisely how a gate
+     * stops meaning what its name says.
+     *
+     * @return 'frame'|'host'
+     */
+    public function resolvedCreateAffordance(): string
+    {
+        return $this->creatable && $this->createAffordance === 'frame' ? 'frame' : 'host';
+    }
 
     /**
      * Return an immutable copy with the given fields overlaid — an agnostic copy-wither. Every param is
@@ -75,6 +94,7 @@ class ResourceDefinition extends Data
      * @param  class-string|null  $editData
      * @param  'enriched'|'bare'|null  $form
      * @param  'single'|'subnav'|'master-detail'|null  $layout
+     * @param  'frame'|'host'|null  $createAffordance
      */
     public function withOverrides(
         ?string $key = null,
@@ -89,6 +109,7 @@ class ResourceDefinition extends Data
         ?bool $deletable = null,
         ?bool $editable = null,
         ?bool $showable = null,
+        ?string $createAffordance = null,
         // NavMetadata overlay — each rebuilds the nav field-by-field:
         ?string $label = null,
         ?string $group = null,
@@ -118,6 +139,7 @@ class ResourceDefinition extends Data
             deletable: $deletable ?? $this->deletable,
             editable: $editable ?? $this->editable,
             showable: $showable ?? $this->showable,
+            createAffordance: $createAffordance ?? $this->createAffordance,
         );
     }
 }

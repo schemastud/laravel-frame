@@ -42,9 +42,10 @@ class ContextManifest
     /**
      * @param  'single'|'subnav'|'master-detail'|null  $layout  the resource's declared inner-layout grammar, handed in from its {@see ResourceDefinition} (frame no longer reflects the producer's attribute for it)
      * @param  string|null  $key  the resource's registry key, for the {@see ResourceContextContributor} plug. Null (or no bound port) ⇒ reflection only, which is every pure-frame host.
-     * @return array{byNode: array<string, array<string, mixed>>, inherits: array<string, list<string>>, known: list<string>, layout: 'single'|'subnav'|'master-detail'|null}
+     * @param  'frame'|'host'  $createAffordance  the RESOLVED create affordance, handed in from the resource's {@see ResourceDefinition::resolvedCreateAffordance()}. It rides this block rather than the definition for the same reason `$layout` does: a frame shell is handed its ContextManifest and never the definition, so a presentation fact the shell must read has to arrive here. Defaults to `'frame'` — today's behaviour — so every existing caller of this method emits an unchanged block.
+     * @return array{byNode: array<string, array<string, mixed>>, inherits: array<string, list<string>>, known: list<string>, layout: 'single'|'subnav'|'master-detail'|null, createAffordance: 'frame'|'host'}
      */
-    public function forResource(string $dataClass, ?string $layout = null, ?string $key = null): array
+    public function forResource(string $dataClass, ?string $layout = null, ?string $key = null, string $createAffordance = 'frame'): array
     {
         $reflection = new ReflectionClass($dataClass);
         $projector = new WidgetContextProjector;
@@ -85,6 +86,11 @@ class ContextManifest
             // producer attribute for it. Null when the resource is layout-agnostic; the
             // socket then falls back to SingleColumn (ticket 09).
             'layout' => $layout,
+            // WHERE this resource's create affordance lives — `'frame'` (its list Toolbar emits the
+            // "New …" button) or `'host'` (the host's own chrome owns it, so frame emits none).
+            // Already RESOLVED against the definition's `creatable` gate; the client reads this one
+            // field and never recombines two, so `creatable` keeps a single spelling.
+            'createAffordance' => $createAffordance,
         ];
     }
 }

@@ -43,9 +43,10 @@ class ContextManifest
      * @param  'single'|'subnav'|'master-detail'|null  $layout  the resource's declared inner-layout grammar, handed in from its {@see ResourceDefinition} (frame no longer reflects the producer's attribute for it)
      * @param  string|null  $key  the resource's registry key, for the {@see ResourceContextContributor} plug. Null (or no bound port) ⇒ reflection only, which is every pure-frame host.
      * @param  'frame'|'host'  $createAffordance  the RESOLVED create affordance, handed in from the resource's {@see ResourceDefinition::resolvedCreateAffordance()}. It rides this block rather than the definition for the same reason `$layout` does: a frame shell is handed its ContextManifest and never the definition, so a presentation fact the shell must read has to arrive here. Defaults to `'frame'` — today's behaviour — so every existing caller of this method emits an unchanged block.
-     * @return array{byNode: array<string, array<string, mixed>>, inherits: array<string, list<string>>, known: list<string>, layout: 'single'|'subnav'|'master-detail'|null, createAffordance: 'frame'|'host'}
+     * @param  string  $singularLabel  the RESOLVED display singular, handed in from {@see ResourceDefinition::resolvedSingularLabel()}. It rides this block for the same reason `$layout` and `$createAffordance` do: a frame shell is handed its ContextManifest and never the definition, so a presentation fact the shell must read has to arrive here. Empty (the default) ⇒ the shell falls back to the resource KEY, i.e. today's behaviour, so every existing caller of this method emits an unchanged block.
+     * @return array{byNode: array<string, array<string, mixed>>, inherits: array<string, list<string>>, known: list<string>, layout: 'single'|'subnav'|'master-detail'|null, createAffordance: 'frame'|'host', singularLabel: string}
      */
-    public function forResource(string $dataClass, ?string $layout = null, ?string $key = null, string $createAffordance = 'frame'): array
+    public function forResource(string $dataClass, ?string $layout = null, ?string $key = null, string $createAffordance = 'frame', string $singularLabel = ''): array
     {
         $reflection = new ReflectionClass($dataClass);
         $projector = new WidgetContextProjector;
@@ -91,6 +92,10 @@ class ContextManifest
             // Already RESOLVED against the definition's `creatable` gate; the client reads this one
             // field and never recombines two, so `creatable` keeps a single spelling.
             'createAffordance' => $createAffordance,
+            // WHAT this resource calls ONE record — the noun frame's own toolbar puts after "New".
+            // Already resolved (declared word, else the plural label inflected); the client neither
+            // inflects nor sees the label, which is why the default toolbar said "New scaffold-packs".
+            'singularLabel' => $singularLabel,
         ];
     }
 }

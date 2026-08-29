@@ -34,6 +34,7 @@ class FrameManifestController
                 $definition->layout,
                 $definition->key,
                 $definition->resolvedCreateAffordance(),
+                $definition->resolvedSingularLabel(),
             );
         }
 

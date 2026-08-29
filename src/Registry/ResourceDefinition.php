@@ -2,6 +2,7 @@
 
 namespace Schemastud\Frame\Registry;
 
+use Illuminate\Support\Str;
 use Schemastud\Frame\Http\Controllers\FrameManifestController;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
@@ -39,6 +40,7 @@ class ResourceDefinition extends Data
      * @param  string|null  $policy  ability/policy key the injected can() resolves against
      * @param  'enriched'|'bare'  $form  per-resource default form mode
      * @param  'single'|'subnav'|'master-detail'|null  $layout  inner-layout grammar emitted on the ContextManifest (null = the socket's SingleColumn fallback)
+     * @param  string  $singularLabel  the resource's display SINGULAR — the noun a create affordance says ("New scaffold pack"). Empty (the default) ⇒ inflected from `$nav->label` (or the key). It exists because the inflector MANGLES mass/irregular nouns (`media` → "Medium"), which is the same reason the producer's own declaration carries the slot; declaring it here is how that declared word reaches a shell instead of dying in the docs generator. Display-only: it carries no capability and gates nothing.
      * @param  'frame'|'host'  $createAffordance  WHERE this resource's create affordance lives, and the only new slot here: `'frame'` (the default, and today's behaviour) means frame's own list Toolbar emits the "New …" button; `'host'` means the host's page chrome owns it — a title-row button, a reveal-once dialog — so frame emits none. It is a PRESENTATION slot, deliberately not a capability one: $creatable already answers "may this be created at all", and a resource can be perfectly creatable while its affordance lives somewhere frame cannot see. The two are combined into one resolved value on the {@see ContextManifest}, never on the client, so `creatable` keeps exactly one spelling.
      */
     public function __construct(
@@ -56,7 +58,29 @@ class ResourceDefinition extends Data
         public bool $editable = true,
         public bool $showable = true,
         public string $createAffordance = 'frame',
+        public string $singularLabel = '',
     ) {}
+
+    /**
+     * The RESOLVED singular noun emitted onto this resource's {@see ContextManifest} — what a
+     * frame-emitted create affordance calls one record ("New scaffold pack").
+     *
+     * The declared word wins; absent one, the plural display label is inflected. Resolving it
+     * SERVER-side is the point: the client has neither the label (a shell is handed its
+     * ContextManifest, never the definition) nor an inflector, which is why frame's own toolbar
+     * has been rendering the raw resource KEY — "New scaffold-packs".
+     *
+     * ⚠️ This never touches `$nav->label`. The plural label is what nav renders and it keeps one
+     * spelling; this is a second, derived word for a different sentence.
+     */
+    public function resolvedSingularLabel(): string
+    {
+        if ($this->singularLabel !== '') {
+            return $this->singularLabel;
+        }
+
+        return Str::singular($this->nav->label !== '' ? $this->nav->label : Str::headline($this->key));
+    }
 
     /**
      * The RESOLVED create affordance emitted onto this resource's {@see ContextManifest} — the one
@@ -110,6 +134,7 @@ class ResourceDefinition extends Data
         ?bool $editable = null,
         ?bool $showable = null,
         ?string $createAffordance = null,
+        ?string $singularLabel = null,
         // NavMetadata overlay — each rebuilds the nav field-by-field:
         ?string $label = null,
         ?string $group = null,
@@ -140,6 +165,7 @@ class ResourceDefinition extends Data
             editable: $editable ?? $this->editable,
             showable: $showable ?? $this->showable,
             createAffordance: $createAffordance ?? $this->createAffordance,
+            singularLabel: $singularLabel ?? $this->singularLabel,
         );
     }
 }

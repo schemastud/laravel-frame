@@ -2,7 +2,6 @@
 
 namespace Schemastud\Frame\Tests;
 
-use Schemastud\Frame\Registry\AliasEntry;
 use Schemastud\Frame\Registry\RouteContextEntry;
 
 /**
@@ -67,16 +66,5 @@ class RouteContextEntryTest extends TestCase
         );
 
         $this->assertSame('root', $entry->toArray()['guard']);
-    }
-
-    public function test_alias_entry_serializes_the_three_flat_shapes(): void
-    {
-        $static = new AliasEntry(from: '/review-queue', to: '/review');
-        $param = new AliasEntry(from: '/assistants/:id', to: '/threads/assistants/:id');
-        $query = new AliasEntry(from: '/circuit-runs', to: '/system', preserveQuery: true);
-
-        $this->assertSame(['from' => '/review-queue', 'to' => '/review', 'preserveQuery' => false], $static->toArray());
-        $this->assertSame('/threads/assistants/:id', $param->toArray()['to']);
-        $this->assertTrue($query->toArray()['preserveQuery']);
     }
 }

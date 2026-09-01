@@ -56,7 +56,11 @@ class ResourceRegistryConformanceTest extends TestCase
         // Relative in, absolute out (20 D2) — and the caller-facing enumeration keeps the caller's
         // spelling AND its insertion order, which is what the served manifest promises.
         $this->assertSame(
-            ['frame.resources.sample', 'frame.resources.other'],
+            // `frame.resources.frame.*`, not `frame.resources.*`: since registry-kernel 77 this class is
+            // a MEMBER of the `frame.resources` index, attached under `frame`, and its keyspace is the
+            // member's — the index owns the root. Ticket 26 D2's runtime root, taken as an instance
+            // declaration because the member segment is not knowable at class-attribute time.
+            ['frame.resources.frame.sample', 'frame.resources.frame.other'],
             array_map(strval(...), $registry->keys()),
         );
         $this->assertSame(

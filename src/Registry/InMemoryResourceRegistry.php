@@ -5,6 +5,7 @@ namespace Schemastud\Frame\Registry;
 use InvalidArgumentException;
 use Rushing\Popcorn\Registries\Authorizer;
 use Rushing\Popcorn\Registries\BasicRegistry;
+use Rushing\Popcorn\Registries\CarriesDeclaration;
 use Rushing\Popcorn\Registries\Gated;
 use Rushing\Popcorn\Registries\IsRegistry;
 use Rushing\Popcorn\Registries\Key;
@@ -25,41 +26,66 @@ use Schemastud\Frame\Contracts\ResourceRegistry;
  * A host that binds no producer can bind this directly and register definitions
  * imperatively; a host with a producer binds the producer's registry to the same port.
  *
- * ## Declared, as of registry-kernel 38's sweep
+ * ## Declared, as of registry-kernel 38's sweep — and a MEMBER, as of 77
  *
  * The private `array $resources` is gone; the keyspace is a composed {@see BasicRegistry}, which is
- * what makes `frame.resources` addressable through the index and `popcorn:keys` instead of only
- * through this class. The port's own vocabulary — {@see get()}, {@see find()}, {@see all()} — stays
- * as sugar over the kernel's, with its ORIGINAL miss behaviour: `get()` still throws
- * {@see InvalidArgumentException} with the same sentence, because a consumer may be catching it and
- * the kernel's `RegistryMiss` is a different type carrying a different one.
+ * what makes it addressable through the kernel and `popcorn:keys` instead of only through this class.
+ * The port's own vocabulary — {@see get()}, {@see find()}, {@see all()} — stays as sugar over the
+ * kernel's, with its ORIGINAL miss behaviour: `get()` still throws {@see InvalidArgumentException}
+ * with the same sentence, because a consumer may be catching it and the kernel's `RegistryMiss` is a
+ * different type carrying a different one.
  *
- * `Optionality::Optional` is the honest declaration: frame's whole design allows a host that binds
- * no producer, whose manifest route resolves an empty registry and serves `{resources: []}`.
+ * ⚠️ **It no longer carries `#[IsRegistry]`, and that is ticket 77's ruling, not an omission.** It used
+ * to declare `root: 'frame.resources'` — but `frame.resources` is now the INDEX
+ * ({@see CompositeResourceRegistry}), and this class is one entry in it. Its keyspace is therefore
+ * `frame.resources.{member}`, a value known only when it is attached, so the declaration is an
+ * INSTANCE field rather than a class attribute. Ticket 26 D2 sanctioned exactly this:
+ * `BasicRegistry::__construct()` takes an {@see IsRegistry}, `for()` reads the class attribute only as
+ * a convenience, and `RegistryIndex::declarationAt()` reads the LIVE registry — so a runtime-rooted
+ * registry is completely declared and nothing has to reflect this class to see it.
+ *
+ * A member is deliberately NOT a root: it is an entry of `frame.resources`, so the estate's root set
+ * is unchanged by having one, two or ten producers.
+ *
+ * `Optionality::Optional` is the honest declaration: frame's whole design allows a host that attaches
+ * no producer, whose manifest route resolves an empty index and serves `{resources: []}`.
  */
-#[IsRegistry(
-    root: 'frame.resources',
-    of: 'frame resource definitions — one editor wiring (data class, layout, columns, widgets) per resource key',
-    arity: RegistryArity::PickOne,
-    entryType: ResourceDefinition::class,
-    onDuplicate: OnDuplicate::Supersede,
-    optionality: Optionality::Optional,
-    note: 'Supersede is what this class has always done — registration was a plain array assignment '
-        .'under $definition->key and the docblock called it "idempotent by key", so a second '
-        .'registration replaced the first silently. Declaring it makes the displaced definition '
-        .'readable rather than lost. This is the AGNOSTIC default implementation of frame\'s port; a '
-        .'host binding a producer (beam aliases the port onto a forwarder over '
-        .'`beam.particle.resources`) never constructs this, and the root simply stands empty there.',
-    order: 30,
-)]
-class InMemoryResourceRegistry implements Gated, ResourceRegistry
+class InMemoryResourceRegistry implements CarriesDeclaration, Gated, ResourceRegistry
 {
     /** @var BasicRegistry<ResourceDefinition> */
     private BasicRegistry $entries;
 
-    public function __construct()
+    private IsRegistry $declaration;
+
+    /**
+     * @param  string  $member  the segment this store is attached under inside `frame.resources`; it is
+     *                          what makes the root a runtime value and the declaration an instance field
+     */
+    public function __construct(string $member = CompositeResourceRegistry::DEFAULT_MEMBER)
     {
-        $this->entries = BasicRegistry::for($this);
+        $this->declaration = new IsRegistry(
+            root: 'frame.resources.'.$member,
+            of: 'frame resource definitions — one editor wiring (data class, layout, columns, widgets) per resource key',
+            arity: RegistryArity::PickOne,
+            entryType: ResourceDefinition::class,
+            onDuplicate: OnDuplicate::Supersede,
+            optionality: Optionality::Optional,
+            note: 'Supersede is what this class has always done — registration was a plain array assignment '
+                .'under $definition->key and the docblock called it "idempotent by key", so a second '
+                .'registration replaced the first silently. Declaring it makes the displaced definition '
+                .'readable rather than lost. This is the AGNOSTIC default implementation of frame\'s port, '
+                .'and since registry-kernel 77 it is a MEMBER of the `frame.resources` index rather than '
+                .'its owner — a host binding a producer attaches that producer beside this one.',
+            order: 30,
+        );
+
+        $this->entries = new BasicRegistry($this->declaration);
+    }
+
+    /** {@see CarriesDeclaration} — read this, not the class attribute; there is not one. */
+    public function declaration(): IsRegistry
+    {
+        return $this->declaration;
     }
 
     /**

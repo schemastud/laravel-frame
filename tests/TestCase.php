@@ -3,6 +3,7 @@
 namespace Schemastud\Frame\Tests;
 
 use Orchestra\Testbench\TestCase as Orchestra;
+use Rushing\Popcorn\Laravel\PopcornServiceProvider;
 use Schemastud\DataSchemas\LaravelDataSchemasServiceProvider;
 use Schemastud\Frame\FrameServiceProvider;
 use Spatie\LaravelData\LaravelDataServiceProvider;
@@ -22,6 +23,11 @@ abstract class TestCase extends Orchestra
     protected function getPackageProviders($app): array
     {
         return [
+            // Testbench does not auto-discover, so this provider — which installs the SHARED
+            // RegistryIndex binding and the baked membership — never boots unless it is named here.
+            // Without it every index read in this suite lands on a fresh throwaway and passes over
+            // an empty index (registry-kernel 27 D3).
+            PopcornServiceProvider::class,
             LaravelDataServiceProvider::class,
             LaravelDataSchemasServiceProvider::class,
             FrameServiceProvider::class,

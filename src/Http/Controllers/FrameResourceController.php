@@ -7,6 +7,7 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Str;
 use ReflectionClass;
 use Schemastud\DataSchemas\Generators\Generator;
+use Schemastud\Frame\Authorization\ResourceAuthorizer;
 use Schemastud\Frame\Contracts\FrameFilterProvider;
 use Schemastud\Frame\Contracts\FrameResourceHandlerResolver;
 use Schemastud\Frame\Contracts\ResourceRegistry;
@@ -24,6 +25,21 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  * Envelopes (unchanged from the ported host shape, so any existing JS transport is a
  * straight lift): list → `{data,total,page,perPage}`, single → `{data}`, schema → the
  * raw generated JSON Schema, delete → 204.
+ *
+ * ## The write axis is gated here, and the read axis deliberately is not
+ *
+ * Until 2026-09-05 this class contained no `authorize`, no `Gate::` and no ability name at all, so
+ * every verb it served was open to anyone the host's `frame.middleware` let through. At `~/Herd/beam`
+ * that is `['web','auth']`, so a member holding only `beam-ux-entry.view` could create and delete
+ * every record of every frame resource; `POST` with an empty body answered **422**, proving that
+ * validation ran before any permission question was asked, because none was. `store`/`update`/
+ * `destroy` now pass through {@see ResourceAuthorizer} FIRST — before `$request->all()` reaches a
+ * handler, so an unauthorized write is a 403 and never a validation error.
+ *
+ * `index`/`show`/`schema` and the facets endpoints are untouched. The read posture is decided
+ * elsewhere and differently on purpose (see {@see ResourceAuthorizer}'s docblock); making the two
+ * axes symmetric here would close resources whose index is gated by its row-level scope rather than
+ * by a class policy, which ADR-0156 §83 makes the deliberate design for a filterable resource.
  */
 class FrameResourceController
 {
@@ -31,6 +47,7 @@ class FrameResourceController
         protected ResourceRegistry $registry,
         protected FrameResourceHandlerResolver $resources,
         protected FrameFilterProvider $filters,
+        protected ResourceAuthorizer $authorizer,
     ) {}
 
     public function index(Request $request, string $resource): array
@@ -97,6 +114,7 @@ class FrameResourceController
     public function store(Request $request, string $resource): array
     {
         $definition = $this->definition($resource);
+        $this->authorizer->authorize($definition, 'create');
 
         return ['data' => $this->resources->handlerFor($resource)->store($definition, $request->all())];
     }
@@ -104,13 +122,24 @@ class FrameResourceController
     public function update(Request $request, string $resource, string $id): array
     {
         $definition = $this->definition($resource);
+        $this->authorizer->authorize($definition, 'update', $id);
 
         return ['data' => $this->resources->handlerFor($resource)->update($definition, $id, $request->all())];
     }
 
+    /**
+     * ⚠️ `destroy` was the widest of the three, and not only because this controller asked nothing.
+     * Beam's handler routes `store`/`update` through a {@see \Splicewire\Beam\Write\ParticleWriter}
+     * whose chain opens with an `AuthorizeStage`, so a resource that declared a `policy` string had
+     * SOMETHING checking it there — but `ParticleFrameResourceHandler::destroy()` bypasses the writer
+     * entirely (`$this->query($definition)->findOrFail($id)->delete()`), so delete had no gate on any
+     * path even for a resource that declared one.
+     */
     public function destroy(Request $request, string $resource, string $id): Response
     {
         $definition = $this->definition($resource);
+        $this->authorizer->authorize($definition, 'delete', $id);
+
         $this->resources->handlerFor($resource)->destroy($definition, $id);
 
         return response()->noContent();

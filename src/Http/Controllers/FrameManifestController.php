@@ -3,6 +3,7 @@
 namespace Schemastud\Frame\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Schemastud\Frame\Authorization\ResourceAuthorizer;
 use Schemastud\Frame\Contracts\FrameNavContributor;
 use Schemastud\Frame\Contracts\ResourceRegistry;
 use Schemastud\Frame\Registry\ContextManifest;
@@ -39,6 +40,7 @@ class FrameManifestController
         ResourceRegistry $registry,
         ContextManifest $manifest,
         NavManifest $nav,
+        ResourceAuthorizer $authorizer,
     ): array {
         $contexts = [];
 
@@ -49,6 +51,11 @@ class FrameManifestController
                 $definition->key,
                 $definition->resolvedCreateAffordance(),
                 $definition->resolvedSingularLabel(),
+                // The ACTOR axis. This makes the manifest response VARY BY USER, which it did not
+                // before — a host caching it must key that cache on the viewer, or it will serve one
+                // actor's affordances to another. The resources/contexts payload is otherwise
+                // unchanged, and an anonymous request resolves every capability false.
+                $authorizer->capabilities($definition),
             );
         }
 

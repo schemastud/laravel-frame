@@ -44,9 +44,10 @@ class ContextManifest
      * @param  string|null  $key  the resource's registry key, for the {@see ResourceContextContributor} plug. Null (or no bound port) ⇒ reflection only, which is every pure-frame host.
      * @param  'frame'|'host'  $createAffordance  the RESOLVED create affordance, handed in from the resource's {@see ResourceDefinition::resolvedCreateAffordance()}. It rides this block rather than the definition for the same reason `$layout` does: a frame shell is handed its ContextManifest and never the definition, so a presentation fact the shell must read has to arrive here. Defaults to `'frame'` — today's behaviour — so every existing caller of this method emits an unchanged block.
      * @param  string  $singularLabel  the RESOLVED display singular, handed in from {@see ResourceDefinition::resolvedSingularLabel()}. It rides this block for the same reason `$layout` and `$createAffordance` do: a frame shell is handed its ContextManifest and never the definition, so a presentation fact the shell must read has to arrive here. Empty (the default) ⇒ the shell falls back to the resource KEY, i.e. today's behaviour, so every existing caller of this method emits an unchanged block.
-     * @return array{byNode: array<string, array<string, mixed>>, inherits: array<string, list<string>>, known: list<string>, layout: 'single'|'subnav'|'master-detail'|null, createAffordance: 'frame'|'host', singularLabel: string}
+     * @param  array{create?: bool, update?: bool, delete?: bool}  $can  the CURRENT ACTOR's class-level write capabilities, from {@see \Schemastud\Frame\Authorization\ResourceAuthorizer::capabilities()}. It rides this block for the same reason the three above do — the shell never sees the definition — and it is the axis the shell has never had. `createAffordance`/`creatable`/`deletable`/`editable` describe the RESOURCE ("may this be created at all", "whose chrome owns the button"); this describes the ACTOR, and the two are deliberately NOT collapsed: a resource can be perfectly `creatable` and un-creatable BY YOU. A shell renders a create affordance when `createAffordance === 'frame' && can.create` — two fields answering two different questions, not two spellings of one. **Empty (the default) ⇒ no actor axis was resolved and the shell falls back to the resource flags alone**, i.e. today's behaviour, so every existing caller of this method emits an unchanged block. That default is permissive by design: this map exists to stop offering buttons that cannot work, and the endpoint — not this — is what refuses the write ({@see \Schemastud\Frame\Http\Controllers\FrameResourceController}).
+     * @return array{byNode: array<string, array<string, mixed>>, inherits: array<string, list<string>>, known: list<string>, layout: 'single'|'subnav'|'master-detail'|null, createAffordance: 'frame'|'host', singularLabel: string, can: array{create?: bool, update?: bool, delete?: bool}}
      */
-    public function forResource(string $dataClass, ?string $layout = null, ?string $key = null, string $createAffordance = 'frame', string $singularLabel = ''): array
+    public function forResource(string $dataClass, ?string $layout = null, ?string $key = null, string $createAffordance = 'frame', string $singularLabel = '', array $can = []): array
     {
         $reflection = new ReflectionClass($dataClass);
         $projector = new WidgetContextProjector;
@@ -96,6 +97,11 @@ class ContextManifest
             // Already resolved (declared word, else the plural label inflected); the client neither
             // inflects nor sees the label, which is why the default toolbar said "New scaffold-packs".
             'singularLabel' => $singularLabel,
+            // WHETHER THIS ACTOR may write — the axis the client did not have, which is why the beam
+            // console rendered a "New entry" button and 13 "Delete entry" buttons for a member
+            // holding only `beam-ux-entry.view`. Resolved server-side against the same
+            // ResourceAuthorizer the endpoint asks, so the button and its 403 cannot disagree.
+            'can' => $can,
         ];
     }
 }

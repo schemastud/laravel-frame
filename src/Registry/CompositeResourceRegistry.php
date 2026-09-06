@@ -12,7 +12,6 @@ use Rushing\Popcorn\Registries\Key;
 use Rushing\Popcorn\Registries\OnDuplicate;
 use Rushing\Popcorn\Registries\Optionality;
 use Rushing\Popcorn\Registries\Registry;
-use Rushing\Popcorn\Registries\RegistryArity;
 use Rushing\Popcorn\Registries\RegistryKey;
 use Schemastud\Frame\Contracts\ResourceRegistry;
 
@@ -72,21 +71,14 @@ use Schemastud\Frame\Contracts\ResourceRegistry;
  * is `OnDuplicate::Supersede`'s and it is what the alias did, so nothing changes meaning — it just
  * stops being invisible.
  *
- * The declared arity is a two-step list, outermost first, and it is the honest reading of the above:
- * `RunAll` over the members (an `all()` engages every one of them), then `PickOne` inside whichever
- * member answers.
+ * `all()` engages every member; keyed reads use the first member that answers in reverse attachment order.
  */
 #[IsRegistry(
     root: 'frame.resources',
-    of: 'resource registries — one entry per PRODUCER of frame resource definitions (frame\'s own imperative store, a CMS engine\'s, a host\'s)',
-    arity: [RegistryArity::RunAll, RegistryArity::PickOne],
     entryType: ResourceRegistry::class,
     onDuplicate: OnDuplicate::Supersede,
     optionality: Optionality::Optional,
-    note: 'The entries are REGISTRIES, not resource definitions — a resource key is answered by routing '
-        .'to a member and letting that member project it, never by this class holding definitions of '
-        .'its own. Optional because frame\'s whole design allows a host that attaches no producer, '
-        .'whose manifest route then serves `{resources: []}`. Registry-kernel 77.',
+    description: 'resource registries — one entry per PRODUCER of frame resource definitions (frame\'s own imperative store, a CMS engine\'s, a host\'s). The entries are REGISTRIES, not resource definitions — a resource key is answered by routing to a member and letting that member project it, never by this class holding definitions of its own. Optional because frame\'s whole design allows a host that attaches no producer, whose manifest route then serves `{resources: []}`. Registry-kernel 77.',
     order: 30,
 )]
 class CompositeResourceRegistry implements Gated, ResourceRegistry

@@ -12,7 +12,6 @@ use Rushing\Popcorn\Registries\Key;
 use Rushing\Popcorn\Registries\OnDuplicate;
 use Rushing\Popcorn\Registries\Optionality;
 use Rushing\Popcorn\Registries\Registry;
-use Rushing\Popcorn\Registries\RegistryArity;
 use Rushing\Popcorn\Registries\RegistryKey;
 use Schemastud\Frame\Contracts\ResourceRegistry;
 
@@ -65,17 +64,10 @@ class InMemoryResourceRegistry implements CarriesDeclaration, Gated, ResourceReg
     {
         $this->declaration = new IsRegistry(
             root: 'frame.resources.'.$member,
-            of: 'frame resource definitions — one editor wiring (data class, layout, columns, widgets) per resource key',
-            arity: RegistryArity::PickOne,
             entryType: ResourceDefinition::class,
             onDuplicate: OnDuplicate::Supersede,
             optionality: Optionality::Optional,
-            note: 'Supersede is what this class has always done — registration was a plain array assignment '
-                .'under $definition->key and the docblock called it "idempotent by key", so a second '
-                .'registration replaced the first silently. Declaring it makes the displaced definition '
-                .'readable rather than lost. This is the AGNOSTIC default implementation of frame\'s port, '
-                .'and since registry-kernel 77 it is a MEMBER of the `frame.resources` index rather than '
-                .'its owner — a host binding a producer attaches that producer beside this one.',
+            description: 'frame resource definitions — one editor wiring (data class, layout, columns, widgets) per resource key. Supersede is what this class has always done — registration was a plain array assignment under $definition->key and the docblock called it "idempotent by key", so a second registration replaced the first silently. Declaring it makes the displaced definition readable rather than lost. This is the AGNOSTIC default implementation of frame\'s port, and since registry-kernel 77 it is a MEMBER of the `frame.resources` index rather than its owner — a host binding a producer attaches that producer beside this one.',
             order: 30,
         );
 

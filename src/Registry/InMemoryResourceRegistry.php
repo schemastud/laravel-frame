@@ -9,8 +9,8 @@ use Rushing\Popcorn\Registries\CarriesDeclaration;
 use Rushing\Popcorn\Registries\Gated;
 use Rushing\Popcorn\Registries\IsRegistry;
 use Rushing\Popcorn\Registries\Key;
-use Rushing\Popcorn\Registries\OnDuplicate;
-use Rushing\Popcorn\Registries\Optionality;
+use Rushing\Popcorn\Registries\OnKeyDuplicate;
+use Rushing\Popcorn\Registries\PopulationRequirement;
 use Rushing\Popcorn\Registries\Registry;
 use Rushing\Popcorn\Registries\RegistryKey;
 use Schemastud\Frame\Contracts\ResourceRegistry;
@@ -46,7 +46,7 @@ use Schemastud\Frame\Contracts\ResourceRegistry;
  * A member is deliberately NOT a root: it is an entry of `frame.resources`, so the estate's root set
  * is unchanged by having one, two or ten producers.
  *
- * `Optionality::Optional` is the honest declaration: frame's whole design allows a host that attaches
+ * `PopulationRequirement::Optional` is the honest declaration: frame's whole design allows a host that attaches
  * no producer, whose manifest route resolves an empty index and serves `{resources: []}`.
  */
 class InMemoryResourceRegistry implements CarriesDeclaration, Gated, ResourceRegistry
@@ -65,8 +65,8 @@ class InMemoryResourceRegistry implements CarriesDeclaration, Gated, ResourceReg
         $this->declaration = new IsRegistry(
             root: 'frame.resources.'.$member,
             entryType: ResourceDefinition::class,
-            onDuplicate: OnDuplicate::Supersede,
-            optionality: Optionality::Optional,
+            onKeyDuplicate: OnKeyDuplicate::Supersede,
+            populationRequirement: PopulationRequirement::Optional,
             description: 'frame resource definitions — one editor wiring (data class, layout, columns, widgets) per resource key. Supersede is what this class has always done — registration was a plain array assignment under $definition->key and the docblock called it "idempotent by key", so a second registration replaced the first silently. Declaring it makes the displaced definition readable rather than lost. This is the AGNOSTIC default implementation of frame\'s port, and since registry-kernel 77 it is a MEMBER of the `frame.resources` index rather than its owner — a host binding a producer attaches that producer beside this one.',
             order: 30,
         );

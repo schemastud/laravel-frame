@@ -9,8 +9,8 @@ use Rushing\Popcorn\Registries\BasicRegistry;
 use Rushing\Popcorn\Registries\Gated;
 use Rushing\Popcorn\Registries\IsRegistry;
 use Rushing\Popcorn\Registries\Key;
-use Rushing\Popcorn\Registries\OnDuplicate;
-use Rushing\Popcorn\Registries\Optionality;
+use Rushing\Popcorn\Registries\OnKeyDuplicate;
+use Rushing\Popcorn\Registries\PopulationRequirement;
 use Rushing\Popcorn\Registries\Registry;
 use Rushing\Popcorn\Registries\RegistryKey;
 use Schemastud\Frame\Contracts\ResourceRegistry;
@@ -68,7 +68,7 @@ use Schemastud\Frame\Contracts\ResourceRegistry;
  * another with load order deciding and nothing recording it. Here both members are entries, both are
  * enumerable, and a keyed read consults them in **reverse attachment order**: the last attached member
  * that can answer wins, and the displaced one is still readable at its own member key. That direction
- * is `OnDuplicate::Supersede`'s and it is what the alias did, so nothing changes meaning — it just
+ * is `OnKeyDuplicate::Supersede`'s and it is what the alias did, so nothing changes meaning — it just
  * stops being invisible.
  *
  * `all()` engages every member; keyed reads use the first member that answers in reverse attachment order.
@@ -76,8 +76,8 @@ use Schemastud\Frame\Contracts\ResourceRegistry;
 #[IsRegistry(
     root: 'frame.resources',
     entryType: ResourceRegistry::class,
-    onDuplicate: OnDuplicate::Supersede,
-    optionality: Optionality::Optional,
+    onKeyDuplicate: OnKeyDuplicate::Supersede,
+    populationRequirement: PopulationRequirement::Optional,
     description: 'resource registries — one entry per PRODUCER of frame resource definitions (frame\'s own imperative store, a CMS engine\'s, a host\'s). The entries are REGISTRIES, not resource definitions — a resource key is answered by routing to a member and letting that member project it, never by this class holding definitions of its own. Optional because frame\'s whole design allows a host that attaches no producer, whose manifest route then serves `{resources: []}`. Registry-kernel 77.',
     order: 30,
 )]

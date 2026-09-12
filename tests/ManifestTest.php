@@ -129,7 +129,13 @@ class ManifestTest extends TestCase
         $response->assertJsonPath('resources.0.key', 'sample');
         $response->assertJsonPath('resources.0.form', 'raw');
         $response->assertJsonPath('resources.0.nav.label', 'Samples');
-        $response->assertJsonPath('resources.0.data', SampleResourceData::class);
+        // The wire names the GENERATED type (dot form, the name `typescript:transform` emits), never
+        // the PHP class — and carries no `model` at all (ADR-0002). The registry object one test up
+        // still holds both as class-strings: they are server-side inputs, not wire fields.
+        $response->assertJsonPath('resources.0.data', 'Schemastud.Frame.Tests.Fixtures.SampleResourceData');
+        $response->assertJsonMissingPath('resources.0.model');
+        $this->assertStringNotContainsString(SampleModel::class, $response->getContent());
+        $this->assertStringNotContainsString(SampleResourceData::class, $response->getContent());
     }
 
     public function test_definitions_register_as_flat_siblings(): void

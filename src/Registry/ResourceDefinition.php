@@ -4,7 +4,10 @@ namespace Schemastud\Frame\Registry;
 
 use Illuminate\Support\Str;
 use Schemastud\Frame\Http\Controllers\FrameManifestController;
+use Spatie\LaravelData\Attributes\Hidden;
+use Spatie\LaravelData\Attributes\WithTransformer;
 use Spatie\LaravelData\Data;
+use Spatie\TypeScriptTransformer\Attributes\Hidden as HiddenFromTypeScript;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
@@ -13,7 +16,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * serves an array of these at GET /frame/manifest, generated to TS so the frontend
  * manifest entry IS the backend projection (generate-once parity).
  *
- * This is a GENERIC manifest contract — it names {key, model|source, data, nav, …}
+ * This is a GENERIC manifest contract — it names {key, data, nav, affordances, …}
  * but knows nothing about the opinion that produced it. A producer (a CMS engine's
  * resource declaration + registry, or any other) reflects its own declaration and
  * HANDS one of these to frame; frame renders what it is handed and never names a
@@ -23,14 +26,23 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  *
  * The one frontend overlay not carried here is `columns` (host-supplied FrameColumn[],
  * merged frontend-side — columns are not backend-derivable until x-column graduates).
+ *
+ * Two of the constructor's fields are SERVER-SIDE INPUTS that the wire does not carry as declared
+ * (ADR-0002): `$model` is hidden from both the JSON and the generated TS type — frame's own
+ * {@see \Schemastud\Frame\Authorization\ResourceAuthorizer} resolves the write-gate policy subject
+ * from it, and the {@see \Schemastud\Frame\Contracts\FrameResourceHandler} plug seam may read it, but
+ * a browser has no use for an Eloquent class name and the manifest must not contradict "a resource is
+ * backed, not modelled" (beam ADR-0212) on the wire. `$data` stays a class-string in PHP and is projected
+ * through {@see GeneratedTypeName} on output, so the JSON says `Vendor.Package.Data.RowData` — the name
+ * `typescript:transform` emits — never `Vendor\Package\Data\RowData`.
  */
 #[TypeScript]
 class ResourceDefinition extends Data
 {
     /**
      * @param  string  $key  resource slug
-     * @param  class-string|null  $model  Eloquent model (null for a service-backed union resource)
-     * @param  class-string  $data  read/index-projection Data class (list rows)
+     * @param  class-string|null  $model  Eloquent model (null for a service-backed union resource). Server-side only: never on the wire, never in the TS type.
+     * @param  class-string  $data  read/index-projection Data class (list rows). Class-string in PHP; on the wire, the generated type's dot-form name.
      * @param  bool  $creatable  whether the host may emit a create affordance (false for a union)
      * @param  bool  $deletable  whether the host may emit a delete affordance and the generic handler honours a Frame destroy (independent of $creatable — a resource may be delete-only, e.g. a list you may prune but not create/edit). Defaults true so every existing resource's delete follows its create gate; a producer projects it explicitly to open destroy on an otherwise not-creatable resource.
      * @param  bool  $editable  whether the host may emit an edit affordance and the generic handler honours a Frame update (independent of $creatable — a resource may be create-and-delete-only, never edited in place, e.g. an invitation: sent + revoked but not edited). Defaults true so every existing resource's edit follows its create gate; a producer projects it explicitly to CLOSE in-place edit on an otherwise creatable resource.
@@ -45,7 +57,9 @@ class ResourceDefinition extends Data
      */
     public function __construct(
         public string $key,
+        #[Hidden, HiddenFromTypeScript]
         public ?string $model,
+        #[WithTransformer(GeneratedTypeName::class)]
         public string $data,
         public bool $creatable,
         public ?string $query,

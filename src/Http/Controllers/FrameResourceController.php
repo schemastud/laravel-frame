@@ -36,10 +36,27 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  * `destroy` now pass through {@see ResourceAuthorizer} FIRST — before `$request->all()` reaches a
  * handler, so an unauthorized write is a 403 and never a validation error.
  *
- * `index`/`show`/`schema` and the facets endpoints are untouched. The read posture is decided
- * elsewhere and differently on purpose (see {@see ResourceAuthorizer}'s docblock); making the two
- * axes symmetric here would close resources whose index is gated by its row-level scope rather than
- * by a class policy, which ADR-0156 §83 makes the deliberate design for a filterable resource.
+ * `index`/`show`/`schema` and the facets endpoints take no per-verb POLICY question, and still do
+ * not. The read posture is decided elsewhere and differently on purpose (see
+ * {@see ResourceAuthorizer}'s docblock); making the two axes symmetric here would close resources
+ * whose index is gated by its row-level scope rather than by a class policy, which ADR-0156 §83
+ * makes the deliberate design for a filterable resource.
+ *
+ * ## The REACH axis is above both, and every verb passes through it
+ *
+ * ⚠️ "The read posture is decided elsewhere" was measured on 2026-09-12 and *elsewhere* was nowhere.
+ * At `https://fresh-tower.test`, `demo-member` — an ordinary tenant user — read
+ * `/frame/resources/users`, `/frame/resources/teams` and `/frame/resources/tenants` with **200**:
+ * every user's email, every team, and the tenant roster with its owner email. The host had placed
+ * `users` and `teams` in the operator realm via `config('frame.realms')`, and that list turned out
+ * to drive only which links were DRAWN. One socket serves every realm, so `frame.middleware` — one
+ * ambient list — could not refuse them without refusing the tenant realm's resources too.
+ *
+ * {@see definition()} now asks {@see ResourceAuthorizer::authorizeAccess()} before returning, so
+ * every verb here — reads included — passes the reach question, and {@see filterSchema()} asks it
+ * directly. Frame does not answer that question: {@see \Schemastud\Frame\Contracts\ResourceAccessGate}
+ * is the port, frame's shipped default permits, and the producer that owns realms binds the
+ * refusing answer.
  */
 class FrameResourceController
 {
@@ -147,8 +164,21 @@ class FrameResourceController
 
     // ---- facets endpoints (schema-driven filter bar) ---------------------------
 
+    /**
+     * The facets bar's schema for one resource — gated on the same reach axis as the list it filters,
+     * because a filter schema names the resource's columns and its option refs.
+     *
+     * Gated only when the key IS registered, deliberately. This endpoint has always answered for an
+     * unregistered key (the bound {@see FrameFilterProvider} decides; beam's default answers `[]`),
+     * and turning that into a 404 here would be a second, unrelated behaviour change riding on an
+     * authorization fix.
+     */
     public function filterSchema(string $resource): array
     {
+        if ($this->registry->has($resource)) {
+            $this->authorizer->authorizeAccess($this->registry->get($resource));
+        }
+
         return ['data' => $this->filters->for($resource)];
     }
 
@@ -206,13 +236,30 @@ class FrameResourceController
         return app()->bound(SavedFilterStore::class) ? app(SavedFilterStore::class) : null;
     }
 
+    /**
+     * Resolve a registered definition — and refuse a principal who may not address it at all.
+     *
+     * Every verb this controller serves goes through here, which is the point: the REACH question is
+     * asked once, in the one place all seven read and write entry points already share, so a verb
+     * added later cannot forget it. {@see ResourceAuthorizer::authorizeAccess()} carries the
+     * evidence; the short version is that the read verbs were never gated and `frame.middleware`
+     * structurally cannot gate them per resource.
+     *
+     * ORDER is load-bearing. 404 for "not registered here" comes first, so a gated resource and an
+     * unknown key stay distinguishable; the 403 then lands before `$request->all()`, before
+     * validation, and before any handler is resolved.
+     */
     protected function definition(string $resource)
     {
         if (! $this->registry->has($resource)) {
             throw new NotFoundHttpException("Unknown frame resource '{$resource}'.");
         }
 
-        return $this->registry->get($resource);
+        $definition = $this->registry->get($resource);
+
+        $this->authorizer->authorizeAccess($definition);
+
+        return $definition;
     }
 
     /**

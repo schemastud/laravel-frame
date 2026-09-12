@@ -2,6 +2,8 @@
 
 namespace Schemastud\Frame;
 
+use Schemastud\Frame\Authorization\OpenResourceAccessGate;
+use Schemastud\Frame\Contracts\ResourceAccessGate;
 use Schemastud\Frame\Contracts\ResourceRegistry;
 use Schemastud\Frame\Registry\CompositeResourceRegistry;
 use Schemastud\Frame\Registry\InMemoryResourceRegistry;
@@ -24,6 +26,7 @@ class FrameServiceProvider extends PackageServiceProvider
     public function packageRegistered(): void
     {
         $this->registerResourceRegistry();
+        $this->registerResourceAccessGate();
     }
 
     public function packageBooted(): void
@@ -63,6 +66,21 @@ class FrameServiceProvider extends PackageServiceProvider
         });
 
         $this->app->alias(CompositeResourceRegistry::class, ResourceRegistry::class);
+    }
+
+    /**
+     * Bind the {@see ResourceAccessGate} port to frame's permit-everything default.
+     *
+     * `bind()`, not `singleton()`: the producer above frame (beam) rebinds this at its own
+     * `register()`, and the gate reads live config and the current actor on every call, so there is
+     * nothing to memoise. Binding it here rather than leaving it unbound is what lets
+     * {@see \Schemastud\Frame\Authorization\ResourceAuthorizer} take it as a constructor dependency
+     * instead of probing `app()->bound()` — a gate you have to remember to ask is the shape this
+     * exists to remove.
+     */
+    protected function registerResourceAccessGate(): void
+    {
+        $this->app->bind(ResourceAccessGate::class, OpenResourceAccessGate::class);
     }
 
     /**

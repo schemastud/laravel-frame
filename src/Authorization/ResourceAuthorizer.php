@@ -4,6 +4,7 @@ namespace Schemastud\Frame\Authorization;
 
 use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Database\Eloquent\Model;
+use Schemastud\Frame\Contracts\ResourceAccessGate;
 use Schemastud\Frame\Registry\ResourceDefinition;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
@@ -89,7 +90,41 @@ class ResourceAuthorizer
         'destroy' => 'delete',
     ];
 
-    public function __construct(protected Gate $gate) {}
+    public function __construct(
+        protected Gate $gate,
+        protected ResourceAccessGate $access,
+    ) {}
+
+    /**
+     * The REACH axis — asked FIRST, on every verb including the read ones, and before any handler,
+     * any validation and any policy question.
+     *
+     * This is the second half of the same defect the class docblock opens with. The 2026-09-05 gate
+     * closed the write axis and left the read axis explicitly open on the argument that "the read
+     * posture is decided elsewhere". At every host measured, *elsewhere* turned out to be the NAV
+     * projection alone: measured 2026-09-12 at `https://fresh-tower.test`, `demo-member` — an
+     * ordinary tenant user with `os.operate` false — read `/frame/resources/users`,
+     * `/frame/resources/teams` and `/frame/resources/tenants` with **200**, receiving every user's
+     * email, every team and the tenant roster with its owner email. `config('frame.realms')` had
+     * placed `users` and `teams` in the operator realm; that list drove which links were *drawn*
+     * and gated nothing.
+     *
+     * So this is deliberately NOT a symmetric read policy — the asymmetry the class docblock defends
+     * still stands, and a resource whose index is gated by its row-level scope keeps being served
+     * that way. It is the axis ABOVE both: whether the actor may address this resource on this
+     * socket at all. Frame cannot answer it (it has no realms); {@see ResourceAccessGate} is the
+     * port the producer answers through.
+     */
+    public function authorizeAccess(ResourceDefinition $definition): void
+    {
+        if ($this->access->allowsResource($definition)) {
+            return;
+        }
+
+        throw new AccessDeniedHttpException(
+            "The '{$definition->key}' frame resource is not available to this principal."
+        );
+    }
 
     /**
      * Authorize a write, or throw the 403 that the socket used to never raise.

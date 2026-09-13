@@ -81,38 +81,43 @@ class FrameResourceController
     }
 
     /**
-     * The edit form's contract, projected through the HOST'S CONFIGURED generator chain.
+     * Get Resource Schema
      *
-     * Was `new JsonSchemaGenerator(config('data-schemas', []))`. That construction was already
-     * correct on CONFIG; what it could not do is DISPATCH. `data-schemas.generators` is a LIST, and
-     * the rule "the first member whose `canGenerate()` accepts this class" lives only inside
-     * {@see \Schemastud\DataSchemas\Generators\ChainedGenerator} — so hand-building the default
-     * member is hand-picking it.
-     *
-     * That is not hypothetical for this controller. `~/Herd/thingsontv` configures
-     * `[BlockJsonSchemaGenerator, JsonSchemaGenerator]` and installs this package, and
-     * `BlockJsonSchemaGenerator::canGenerate()` is `isSubclassOf(Block::class)` — a `Block` IS a
-     * `Data`, so a Block-backed resource satisfies the plain generator too. The old code therefore
-     * ran the WRONG member and silently dropped the block's `#[NodeType]`/`#[NodeAttr]` bridging:
-     * an edit form missing the attributes it is supposed to edit, behind an HTTP 200.
-     *
-     * **UNGUARDED, deliberately** — the same call `splicewire/tower`'s `Api\V1\FragmentController`
-     * makes, and the opposite of the one its `CompositionProfileController` makes (that one guards,
-     * because there the schema is one field of a list response). The chain THROWS when no
-     * configured member accepts the class, where the hand-built generator generated regardless; but
-     * this endpoint's ENTIRE product is that one schema, returned raw as the response body. There is
-     * nothing to degrade to. A `canGenerate()` guard could only turn the throw into an empty
-     * document, which frame's EditShell renders as a form with no fields — the silently-wrong
-     * outcome this migration exists to remove, and worse than a 500 because a user can save it.
-     * `ChainedGenerator`'s exception already names the class and every configured generator, so the
-     * 500 is diagnostic, and its blast radius is one request rather than boot.
-     *
-     * The method NAME is load-bearing and unchanged: Wayfinder generates `export const schema` from
-     * it in 12 hosts. That constrains the signature, not the body — it has no bearing on the guard
-     * decision either way.
+     * The schema used to edit this resource.
      */
     public function schema(Request $request, string $resource): array
     {
+        /*
+         * The edit form's contract, projected through the HOST'S CONFIGURED generator chain.
+         *
+         * Was `new JsonSchemaGenerator(config('data-schemas', []))`. That construction was already
+         * correct on CONFIG; what it could not do is DISPATCH. `data-schemas.generators` is a LIST, and
+         * the rule "the first member whose `canGenerate()` accepts this class" lives only inside
+         * {@see \Schemastud\DataSchemas\Generators\ChainedGenerator} — so hand-building the default
+         * member is hand-picking it.
+         *
+         * That is not hypothetical for this controller. `~/Herd/thingsontv` configures
+         * `[BlockJsonSchemaGenerator, JsonSchemaGenerator]` and installs this package, and
+         * `BlockJsonSchemaGenerator::canGenerate()` is `isSubclassOf(Block::class)` — a `Block` IS a
+         * `Data`, so a Block-backed resource satisfies the plain generator too. The old code therefore
+         * ran the WRONG member and silently dropped the block's `#[NodeType]`/`#[NodeAttr]` bridging:
+         * an edit form missing the attributes it is supposed to edit, behind an HTTP 200.
+         *
+         * **UNGUARDED, deliberately** — the same call `splicewire/tower`'s `Api\V1\FragmentController`
+         * makes, and the opposite of the one its `CompositionProfileController` makes (that one guards,
+         * because there the schema is one field of a list response). The chain THROWS when no
+         * configured member accepts the class, where the hand-built generator generated regardless; but
+         * this endpoint's ENTIRE product is that one schema, returned raw as the response body. There is
+         * nothing to degrade to. A `canGenerate()` guard could only turn the throw into an empty
+         * document, which frame's EditShell renders as a form with no fields — the silently-wrong
+         * outcome this migration exists to remove, and worse than a 500 because a user can save it.
+         * `ChainedGenerator`'s exception already names the class and every configured generator, so the
+         * 500 is diagnostic, and its blast radius is one request rather than boot.
+         *
+         * The method NAME is load-bearing and unchanged: Wayfinder generates `export const schema` from
+         * it in 12 hosts. That constrains the signature, not the body — it has no bearing on the guard
+         * decision either way.
+         */
         $definition = $this->definition($resource);
         $editClass = $definition->editData ?? $definition->data;
 
@@ -145,15 +150,20 @@ class FrameResourceController
     }
 
     /**
-     * ⚠️ `destroy` was the widest of the three, and not only because this controller asked nothing.
-     * Beam's handler routes `store`/`update` through a {@see \Splicewire\Beam\Write\ParticleWriter}
-     * whose chain opens with an `AuthorizeStage`, so a resource that declared a `policy` string had
-     * SOMETHING checking it there — but `ParticleFrameResourceHandler::destroy()` bypasses the writer
-     * entirely (`$this->query($definition)->findOrFail($id)->delete()`), so delete had no gate on any
-     * path even for a resource that declared one.
+     * Delete Resource
+     *
+     * Delete one record from this resource.
      */
     public function destroy(Request $request, string $resource, string $id): Response
     {
+        /*
+         * ⚠️ `destroy` was the widest of the three, and not only because this controller asked nothing.
+         * Beam's handler routes `store`/`update` through a {@see \Splicewire\Beam\Write\ParticleWriter}
+         * whose chain opens with an `AuthorizeStage`, so a resource that declared a `policy` string had
+         * SOMETHING checking it there — but `ParticleFrameResourceHandler::destroy()` bypasses the writer
+         * entirely (`$this->query($definition)->findOrFail($id)->delete()`), so delete had no gate on any
+         * path even for a resource that declared one.
+         */
         $definition = $this->definition($resource);
         $this->authorizer->authorize($definition, 'delete', $id);
 
@@ -165,16 +175,21 @@ class FrameResourceController
     // ---- facets endpoints (schema-driven filter bar) ---------------------------
 
     /**
-     * The facets bar's schema for one resource — gated on the same reach axis as the list it filters,
-     * because a filter schema names the resource's columns and its option refs.
+     * Get Filter Schema
      *
-     * Gated only when the key IS registered, deliberately. This endpoint has always answered for an
-     * unregistered key (the bound {@see FrameFilterProvider} decides; beam's default answers `[]`),
-     * and turning that into a 404 here would be a second, unrelated behaviour change riding on an
-     * authorization fix.
+     * The available filters and option references for this resource.
      */
     public function filterSchema(string $resource): array
     {
+        /*
+         * The facets bar's schema for one resource — gated on the same reach axis as the list it filters,
+         * because a filter schema names the resource's columns and its option refs.
+         *
+         * Gated only when the key IS registered, deliberately. This endpoint has always answered for an
+         * unregistered key (the bound {@see FrameFilterProvider} decides; beam's default answers `[]`),
+         * and turning that into a 404 here would be a second, unrelated behaviour change riding on an
+         * authorization fix.
+         */
         if ($this->registry->has($resource)) {
             $this->authorizer->authorizeAccess($this->registry->get($resource));
         }
@@ -188,12 +203,17 @@ class FrameResourceController
     }
 
     /**
-     * Saved views delegate to a bound {@see SavedFilterStore} when the host provides
-     * one; otherwise the read answers empty and the write echoes a transient view (never
-     * persisted) so the facets SavedViews affordance mounts and acts without erroring.
+     * List Saved Filters
+     *
+     * Saved views for the requested resource. Returns an empty list when no saved-view store is configured.
      */
     public function savedFilters(Request $request): array
     {
+        /*
+         * Saved views delegate to a bound {@see SavedFilterStore} when the host provides
+         * one; otherwise the read answers empty and the write echoes a transient view (never
+         * persisted) so the facets SavedViews affordance mounts and acts without erroring.
+         */
         $store = $this->savedFilterStore();
         $resource = (string) $request->query('resource', '');
 

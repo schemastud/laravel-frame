@@ -25,7 +25,16 @@ class ResourceSummaries
         private Container $container,
     ) {}
 
-    public function definition(string $key): ResourceDefinition
+    /**
+     * Find the resource and clear the access gate, or abort.
+     *
+     * PRIVATE, where the filter twin's is public: {@see ResourceFilters::definition()} is public because
+     * callers outside frame genuinely reach for it (beam's own filters controller and saved-filter service
+     * run the gate through it before answering on their own runtime). Nothing addresses a summary except
+     * this class's own {@see summary()}, and a capability's gate is not an entry point on the strength of
+     * the twin's shape alone.
+     */
+    private function definition(string $key): ResourceDefinition
     {
         $resource = $this->registry->find($key);
         abort_if($resource === null, 404, "Unknown frame resource '{$key}'.");

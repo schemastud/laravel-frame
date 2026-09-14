@@ -75,6 +75,18 @@ class SingularLabelTest extends TestCase
     }
 
     /**
+     * The PLURAL resolution, which the singular is inflected from and which producers of a display label
+     * (a summary tile among them) read directly. Declared label wins; an undeclared one headlines the key
+     * rather than rendering the empty string a bare `$nav->label` read would.
+     */
+    public function test_the_resolved_plural_label_prefers_the_declared_one_and_falls_back_to_the_key(): void
+    {
+        $this->assertSame('Scaffold packs', $this->definition('scaffold-packs', 'Scaffold packs')->resolvedLabel());
+        $this->assertSame('Scaffold Packs', $this->definition('scaffold-packs', '')->resolvedLabel());
+        $this->assertSame('', $this->definition('scaffold-packs', '')->nav->label, 'The fallback is derived, never written back onto nav.');
+    }
+
+    /**
      * The plural label is what NAV renders and it keeps exactly one spelling. A second derived
      * word must not quietly become the first.
      */

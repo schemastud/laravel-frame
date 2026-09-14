@@ -94,6 +94,13 @@ class FilterContractGenerationTest extends TestCase
         $this->assertSame('string', $figure['key']['type']);
         $this->assertSame(['string', 'null'], $figure['tone']['type']);
         $this->assertArrayNotHasKey('href', $schema['properties']);
+
+        // `overview` is a DECLARED shape, not a `mixed` bag: it must reach the spec as a named component.
+        $this->assertStringContainsString('OverviewData', json_encode($schema['properties']['overview']));
+        $overview = $root['components']['schemas']['OverviewData']['properties'];
+        $this->assertStringContainsString('SummaryFigureData', json_encode($overview['headline']));
+        $this->assertSame('array', $overview['items']['type']);
+        $this->assertSame(['string', 'null'], $overview['period']['type']);
     }
 
     public function test_generated_typescript_retains_list_members_and_hides_the_server_provider(): void
@@ -120,6 +127,10 @@ class FilterContractGenerationTest extends TestCase
             $this->assertStringNotContainsString('filterProvider', $definition[1]);
             $this->assertStringNotContainsString('summaryProvider', $definition[1]);
             $this->assertStringContainsString('figures: Schemastud.Frame.Data.SummaryFigureData[]', $output);
+            $this->assertStringContainsString('overview: Schemastud.Frame.Data.OverviewData | null', $output);
+            $this->assertSame(1, preg_match('/export type OverviewData = \{(.*?)\};/s', $output, $overview));
+            $this->assertStringContainsString('headline: Schemastud.Frame.Data.SummaryFigureData | null', $overview[1]);
+            $this->assertStringContainsString('period: string | null', $overview[1]);
         } finally {
             if (is_file($directory.'/frame.d.ts')) {
                 unlink($directory.'/frame.d.ts');

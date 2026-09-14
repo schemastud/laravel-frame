@@ -25,6 +25,14 @@ class ResourceFilters
         private Container $container,
     ) {}
 
+    /**
+     * Find the resource and clear the access gate, or abort.
+     *
+     * Public deliberately, and the reason is a caller outside frame: a producer that answers filter
+     * requests on its OWN runtime for retained (non-frame) resources still runs THIS gate first, so the
+     * gate is reachable without also going through one of the responses below. The summary twin
+     * ({@see \Schemastud\Frame\Summary\ResourceSummaries}) has no such caller and keeps its gate private.
+     */
     public function definition(string $key): ResourceDefinition
     {
         $resource = $this->registry->find($key);

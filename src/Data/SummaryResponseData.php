@@ -22,7 +22,7 @@ class SummaryResponseData extends Data
      * @param  string  $label  the resource's display label
      * @param  string|null  $icon  the resource's declared nav icon, when it has one
      * @param  list<SummaryFigureData>  $figures  the figures, in display order
-     * @param  mixed  $overview  an optional expanded payload for the resource's overview rendering; null when the provider offers only figures
+     * @param  OverviewData|null  $overview  the expanded overview payload, when the provider offers one; null when it offers only figures
      */
     public function __construct(
         public string $key,
@@ -30,6 +30,6 @@ class SummaryResponseData extends Data
         public ?string $icon,
         #[DataCollectionOf(SummaryFigureData::class)]
         public array $figures,
-        public mixed $overview = null,
+        public ?OverviewData $overview = null,
     ) {}
 }

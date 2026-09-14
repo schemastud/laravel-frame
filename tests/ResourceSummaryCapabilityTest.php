@@ -6,6 +6,7 @@ use LogicException;
 use Schemastud\Frame\Contracts\ResourceAccessGate;
 use Schemastud\Frame\Contracts\ResourceRegistry;
 use Schemastud\Frame\Contracts\ResourceSummaryProvider;
+use Schemastud\Frame\Data\OverviewData;
 use Schemastud\Frame\Data\SummaryFigureData;
 use Schemastud\Frame\Data\SummaryResponseData;
 use Schemastud\Frame\Registry\InMemoryResourceRegistry;
@@ -26,6 +27,7 @@ class ResourceSummaryCapabilityTest extends TestCase
             ->register($this->resource('articles', ArticleSummary::class))
             ->register($this->resource('closed', ArticleSummary::class))
             ->register($this->resource('declining', DecliningSummary::class))
+            ->register($this->resource('expanded', ExpandedSummary::class))
             ->register($this->resource('mistyped', NotASummaryProvider::class))
             ->register($this->resource('plain')));
         $this->app->instance(ResourceAccessGate::class, new class implements ResourceAccessGate
@@ -57,6 +59,28 @@ class ResourceSummaryCapabilityTest extends TestCase
                 ['key' => 'drafts', 'label' => 'Drafts', 'value' => 3, 'tone' => 'warning'],
             ],
             'overview' => null,
+        ]);
+    }
+
+    /**
+     * The other half of the `overview` slot: a provider that DOES expand passes a declared
+     * {@see \Schemastud\Frame\Data\OverviewData} through to the wire whole. The null case above proves the
+     * slot is optional; only this one proves it carries anything, and that it is a shape rather than the
+     * `mixed` bag it started as.
+     */
+    public function test_a_provider_that_expands_puts_a_declared_overview_on_the_wire(): void
+    {
+        $this->getJson('/frame/resources/expanded/summary')->assertOk()->assertExactJson([
+            'key' => 'expanded',
+            'label' => 'Expanded',
+            'icon' => 'newspaper',
+            'figures' => [['key' => 'total', 'label' => 'Expanded', 'value' => 9, 'tone' => null]],
+            'overview' => [
+                'headline' => ['key' => 'revenue', 'label' => 'Revenue', 'value' => '$1,240', 'tone' => 'positive'],
+                'items' => [['id' => 1, 'title' => 'First'], ['id' => 2, 'title' => 'Second']],
+                'period' => 'Last 30 days',
+                'note' => 'Excludes drafts.',
+            ],
         ]);
     }
 
@@ -127,6 +151,25 @@ class ArticleSummary implements ResourceSummaryProvider
                 new SummaryFigureData('total', $resource->nav->label, 42),
                 new SummaryFigureData('drafts', 'Drafts', 3, 'warning'),
             ],
+        );
+    }
+}
+
+class ExpandedSummary implements ResourceSummaryProvider
+{
+    public function summary(ResourceDefinition $resource): ?SummaryResponseData
+    {
+        return new SummaryResponseData(
+            key: $resource->key,
+            label: $resource->nav->label,
+            icon: $resource->nav->icon,
+            figures: [new SummaryFigureData('total', $resource->nav->label, 9)],
+            overview: new OverviewData(
+                headline: new SummaryFigureData('revenue', 'Revenue', '$1,240', 'positive'),
+                items: [['id' => 1, 'title' => 'First'], ['id' => 2, 'title' => 'Second']],
+                period: 'Last 30 days',
+                note: 'Excludes drafts.',
+            ),
         );
     }
 }

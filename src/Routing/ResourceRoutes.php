@@ -17,11 +17,7 @@ class ResourceRoutes
     ): void {
         foreach (['schema' => 'schema', 'options/{ref}' => 'options', 'variants' => 'variants', '{variant}/schema' => 'schema'] as $suffix => $method) {
             $name = $suffix === '{variant}/schema' ? 'variant-schema' : $method;
-            $route = Route::get(rtrim($at, '/').'/filters/'.$suffix, [FrameResourceFiltersController::class, $method])
-                ->name($names.'.filters.'.$name);
-            foreach ($defaults as $key => $value) {
-                $route->defaults($key, $value);
-            }
+            self::mount($at, 'filters/'.$suffix, [FrameResourceFiltersController::class, $method], $names.'.filters.'.$name, $defaults);
         }
     }
 
@@ -36,8 +32,24 @@ class ResourceRoutes
         string $names = 'frame.resources',
         array $defaults = [],
     ): void {
-        $route = Route::get(rtrim($at, '/').'/summary', [FrameResourceSummaryController::class, 'show'])
-            ->name($names.'.summary');
+        self::mount($at, 'summary', [FrameResourceSummaryController::class, 'show'], $names.'.summary', $defaults);
+    }
+
+    /**
+     * One GET under the resource root, named, carrying the host's route context.
+     *
+     * Every capability mounted here is the same three lines — trim the root, name the route, stamp the
+     * host's `$defaults` onto it — and the two that existed had already been written twice. A capability
+     * whose defaults loop is a copy is a capability whose route context can silently stop matching its
+     * siblings'.
+     *
+     * @param  array{class-string, string}  $action
+     * @param  array<string, mixed>  $defaults
+     */
+    private static function mount(string $at, string $suffix, array $action, string $name, array $defaults): void
+    {
+        $route = Route::get(rtrim($at, '/').'/'.$suffix, $action)->name($name);
+
         foreach ($defaults as $key => $value) {
             $route->defaults($key, $value);
         }

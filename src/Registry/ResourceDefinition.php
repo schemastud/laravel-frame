@@ -103,7 +103,21 @@ class ResourceDefinition extends Data
             return $this->singularLabel;
         }
 
-        return Str::singular($this->nav->label !== '' ? $this->nav->label : Str::headline($this->key));
+        return Str::singular($this->resolvedLabel());
+    }
+
+    /**
+     * The RESOLVED plural display label — the declared nav label, or the key headlined when nav declares
+     * none ("scaffold-packs" ⇒ "Scaffold Packs").
+     *
+     * It exists because the fallback was being spelled twice and drifting: {@see resolvedSingularLabel()}
+     * inflected `Str::headline($key)` while every OTHER producer of a display label — beam's default
+     * summary provider among them — read `$nav->label` bare and rendered an empty string for a resource
+     * that never declared one. One method, one fallback, every caller.
+     */
+    public function resolvedLabel(): string
+    {
+        return $this->nav->label !== '' ? $this->nav->label : Str::headline($this->key);
     }
 
     /**

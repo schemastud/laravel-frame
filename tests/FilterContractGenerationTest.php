@@ -58,6 +58,8 @@ class FilterContractGenerationTest extends TestCase
         $this->assertSame('string', $variant['resource']['type']);
         $this->assertSame('boolean', $variant['canonical']['type']);
         $this->assertSame('boolean', $variant['sameAsCanonical']['type']);
+        $this->assertSame('boolean', $root['components']['schemas']['ResourceCapabilitiesData']['properties']['create']['type']);
+        $this->assertSame('boolean', $root['components']['schemas']['ResourceCapabilitiesData']['properties']['delete']['type']);
     }
 
     public function test_resource_definition_schema_does_not_advertise_the_server_provider(): void
@@ -86,6 +88,7 @@ class FilterContractGenerationTest extends TestCase
             $this->assertStringContainsString('variants: Schemastud.Frame.Data.FilterVariantData[]', $output);
             $this->assertStringContainsString('data: Schemastud.Frame.Data.FilterVariantsData', $output);
             $this->assertStringContainsString('savedViewsResource: string | null', $output);
+            $this->assertStringContainsString('savedViewsCan: Schemastud.Frame.Data.ResourceCapabilitiesData | null', $output);
             $this->assertSame(1, preg_match('/export type ResourceDefinition = \{(.*?)\};/s', $output, $definition));
             $this->assertStringContainsString('key: string', $definition[1]);
             $this->assertStringNotContainsString('filterProvider', $definition[1]);

@@ -69,6 +69,12 @@ class ResourceWriteAuthorizationTest extends TestCase
         $app['config']->set('database.default', 'testing');
     }
 
+    public function test_invalid_variant_selection_is_rejected_before_the_resource_handler(): void
+    {
+        $this->getJson('/frame/resources/sample?filterVariant[]=invalid')
+            ->assertUnprocessable()->assertJsonValidationErrors('filterVariant');
+    }
+
     private function definition(string $key, ?string $model): ResourceDefinition
     {
         return new ResourceDefinition(

@@ -5,10 +5,12 @@ namespace Schemastud\Frame\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use ReflectionClass;
+use Rushing\LaravelDataSchemasScribe\Attributes\QueryFromData;
 use Schemastud\DataSchemas\Generators\Generator;
 use Schemastud\Frame\Authorization\ResourceAuthorizer;
 use Schemastud\Frame\Contracts\FrameResourceHandlerResolver;
 use Schemastud\Frame\Contracts\ResourceRegistry;
+use Schemastud\Frame\Data\ResourceQueryData;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -63,9 +65,11 @@ class FrameResourceController
         protected ResourceAuthorizer $authorizer,
     ) {}
 
+    #[QueryFromData(ResourceQueryData::class)]
     public function index(Request $request, string $resource): array
     {
         $definition = $this->definition($resource);
+        ResourceQueryData::validateAndCreate($request->query());
         $result = $this->resources->handlerFor($resource)->index($definition, $request->query());
 
         // A handler may pre-paginate; otherwise wrap the flat list here.

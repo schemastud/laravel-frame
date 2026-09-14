@@ -12,5 +12,6 @@ class FilterSchemaResponseData extends Data
     public function __construct(
         public array $data,
         public ?string $savedViewsResource = null,
+        public ?ResourceCapabilitiesData $savedViewsCan = null,
     ) {}
 }

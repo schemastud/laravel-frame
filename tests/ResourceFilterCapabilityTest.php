@@ -25,7 +25,8 @@ class ResourceFilterCapabilityTest extends TestCase
             ->register($this->resource('articles', ArticleFilters::class))
             ->register($this->resource('people', PeopleFilters::class))
             ->register($this->resource('closed', ArticleFilters::class))
-            ->register($this->resource('plain')));
+            ->register($this->resource('plain'))
+            ->register($this->resource('named-views')));
         $this->app->instance(ResourceAccessGate::class, new class implements ResourceAccessGate
         {
             public function allowsResource(ResourceDefinition $definition): bool

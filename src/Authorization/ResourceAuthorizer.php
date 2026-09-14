@@ -2,11 +2,13 @@
 
 namespace Schemastud\Frame\Authorization;
 
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Database\Eloquent\Model;
 use Schemastud\Frame\Contracts\ResourceAccessGate;
 use Schemastud\Frame\Registry\ResourceDefinition;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 /**
  * The WRITE-axis ACTOR gate for Frame's generic resource socket — the one authority both the
@@ -195,10 +197,49 @@ class ResourceAuthorizer
     public function capabilities(ResourceDefinition $definition): array
     {
         return [
-            'create' => $definition->creatable && $this->allows($definition, 'create'),
-            'update' => $definition->editable && $this->allows($definition, 'update'),
-            'delete' => $definition->deletable && $this->allows($definition, 'delete'),
+            'create' => $definition->creatable && $this->advisory(fn () => $this->allows($definition, 'create')),
+            'update' => $definition->editable && $this->advisory(fn () => $this->allows($definition, 'update')),
+            'delete' => $definition->deletable && $this->advisory(fn () => $this->allows($definition, 'delete')),
         ];
+    }
+
+    /** @return array{create: bool, update: bool, delete: bool} */
+    public function recordCapabilities(ResourceDefinition $definition, Model $record): array
+    {
+        $model = $definition->model;
+        if ($model === null || ! $record instanceof $model || ! $this->access->allowsResource($definition)) {
+            return ['create' => false, 'update' => false, 'delete' => false];
+        }
+
+        $policy = $this->gate->getPolicyFor($record);
+        $allows = fn (string $ability) => $policy !== null && method_exists($policy, $ability)
+            && $this->advisory(fn () => $this->gate->allows($ability, $record));
+
+        return [
+            'create' => $definition->creatable && $this->advisory(fn () => $this->allows($definition, 'create')),
+            'update' => $definition->editable && $allows('update'),
+            'delete' => $definition->deletable && $allows('delete'),
+        ];
+    }
+
+    /** Policies may conceal a foreign row with 404. An advisory probe must not abort its readable list. */
+    private function advisory(callable $check): bool
+    {
+        try {
+            return $check();
+        } catch (AuthorizationException $exception) {
+            if ($exception->status() !== null && ! in_array($exception->status(), [403, 404], true)) {
+                throw $exception;
+            }
+
+            return false;
+        } catch (HttpExceptionInterface $exception) {
+            if (! in_array($exception->getStatusCode(), [403, 404], true)) {
+                throw $exception;
+            }
+
+            return false;
+        }
     }
 
     /**

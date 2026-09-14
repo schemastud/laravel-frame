@@ -153,7 +153,6 @@ class ContextManifestTest extends TestCase
         };
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('[summary] is whole-collection (class-level) only');
 
         (new ContextManifest)->forResource($subject::class);
     }

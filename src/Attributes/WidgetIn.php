@@ -27,7 +27,10 @@ use Schemastud\Frame\Strategies\WidgetContextsStrategy;
  * "A summary of THIS record" is NOT a new context: that is `list-item`. The two
  * collection contexts describe the resource as a set — a stat tile, a dashboard card —
  * never any single record in it. Declaring a record or collection context on a
- * property, or a property context on the class, throws at projection time.
+ * property, or a property context on the class, throws at projection time — with ONE
+ * exemption the validator carves out: a class-level `list-column` bound to the
+ * `row-actions` widget (the {@see RowActions} sugar), because the row-actions column is
+ * backed by the record rather than by any single property.
  *
  * The sugar attributes {@see Column}, {@see NotInList}, {@see RowActions},
  * {@see Summary} and {@see Overview} are the common cases spelled shorter.

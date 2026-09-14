@@ -144,8 +144,8 @@ class WidgetContextProjector
 
         // Record and collection contexts are both class-only: their subject is larger
         // than any one property.
-        $classOnly = in_array($context, self::RecordContexts, true)
-            || in_array($context, self::CollectionContexts, true);
+        $collection = in_array($context, self::CollectionContexts, true);
+        $classOnly = $collection || in_array($context, self::RecordContexts, true);
 
         // The class-level #[RowActions] sugar is a `list-column` binding of the `row-actions`
         // widget placed on the record (the row-actions column is not backed by any single
@@ -160,7 +160,7 @@ class WidgetContextProjector
         }
 
         if (! $classLevel && $classOnly) {
-            $grain = in_array($context, self::CollectionContexts, true) ? 'whole-collection' : 'whole-record';
+            $grain = $collection ? 'whole-collection' : 'whole-record';
 
             throw new InvalidArgumentException(
                 "Widget context [{$context}] is {$grain} (class-level) only; it cannot be declared on a property."

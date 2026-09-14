@@ -3,6 +3,7 @@
 namespace Schemastud\Frame\Tests;
 
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\DataProvider;
 use ReflectionClass;
 use ReflectionProperty;
 use Schemastud\DataSchemas\Generators\JsonSchemaGenerator;
@@ -124,20 +125,41 @@ class WidgetContextsStrategyTest extends TestCase
         );
     }
 
-    public function test_collection_context_on_a_property_throws(): void
+    /**
+     * BOTH collection contexts, not just the first one: `overview` is class-only on its
+     * own terms and not merely by inheriting `summary`'s cascade.
+     *
+     * @return array<string, array{ReflectionProperty}>
+     */
+    public static function collectionContextProperties(): array
     {
-        // The collection grain (`summary`/`overview`) is class-only exactly as the record
-        // grain (`list-item`) is: the per-property strategy path must refuse it too.
-        $subject = new class
+        $summary = new class
         {
             #[WidgetIn('summary')]
             public string $field = '';
         };
 
+        $overview = new class
+        {
+            #[WidgetIn('overview')]
+            public string $field = '';
+        };
+
+        return [
+            'summary' => [new ReflectionProperty($summary, 'field')],
+            'overview' => [new ReflectionProperty($overview, 'field')],
+        ];
+    }
+
+    #[DataProvider('collectionContextProperties')]
+    public function test_collection_context_on_a_property_throws(ReflectionProperty $property): void
+    {
+        // The collection grain (`summary`/`overview`) is class-only exactly as the record
+        // grain (`list-item`) is: the per-property strategy path must refuse it too.
         $this->expectException(InvalidArgumentException::class);
 
         (new WidgetContextsStrategy)->apply(
-            new ReflectionProperty($subject, 'field'),
+            $property,
             [],
             new SchemaStrategyContext([], 'request'),
         );

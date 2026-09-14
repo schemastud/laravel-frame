@@ -79,6 +79,9 @@ class ContextManifest
         // under a pointer-level merge, replace the reflected class-level map wholesale. Merging
         // one level down lets a contributor ADD a context at any pointer (including the root)
         // while a reflected context at the same pointer keeps the class's own entry.
+        // The priority is now per-CONTEXT at EVERY pointer, not only at the root: reflection
+        // wins each shared context key, where the earlier pointer-level merge let a contributed
+        // pointer replace a reflected one wholesale.
         if ($this->contributor !== null && $key !== null) {
             foreach ($this->contributor->nodesFor($key) as $pointer => $contributed) {
                 $byNode[$pointer] = array_merge($contributed, $byNode[$pointer] ?? []);

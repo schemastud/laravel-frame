@@ -68,6 +68,32 @@ class FilterContractGenerationTest extends TestCase
         $this->assertArrayHasKey('key', $schema['properties']);
         $this->assertArrayNotHasKey('filterProvider', $schema['properties']);
         $this->assertNotContains('filterProvider', $schema['required']);
+        $this->assertArrayNotHasKey('summaryProvider', $schema['properties']);
+        $this->assertNotContains('summaryProvider', $schema['required']);
+    }
+
+    public function test_the_booted_summary_route_generates_a_typed_openapi_response(): void
+    {
+        $route = $this->app['router']->getRoutes()->getByName('frame.resources.summary');
+        $this->assertNotNull($route);
+        $extracted = ExtractedEndpointData::fromRoute($route);
+        $this->assertCount(1, (new UseDataResponse(new DocumentationConfig([])))($extracted));
+        $endpoint = OutputEndpointData::create([
+            'httpMethods' => ['GET'], 'uri' => $route->uri(), 'custom' => $extracted->custom,
+        ]);
+        $groups = [['description' => '', 'name' => 'Frame summary', 'endpoints' => [$endpoint]]];
+        $generator = new DataSchemaGenerator(new DocumentationConfig([]));
+        $root = $generator->root([], $groups);
+        $operation = $generator->pathItem(['responses' => ['200' => []]], $groups, $endpoint);
+        $schema = $operation['responses']['200']['content']['application/json']['schema'];
+
+        $this->assertSame('string', $schema['properties']['key']['type']);
+        $this->assertSame(['string', 'null'], $schema['properties']['icon']['type']);
+        $this->assertSame('#/components/schemas/SummaryFigureData', $schema['properties']['figures']['items']['$ref'] ?? null);
+        $figure = $root['components']['schemas']['SummaryFigureData']['properties'];
+        $this->assertSame('string', $figure['key']['type']);
+        $this->assertSame(['string', 'null'], $figure['tone']['type']);
+        $this->assertArrayNotHasKey('href', $schema['properties']);
     }
 
     public function test_generated_typescript_retains_list_members_and_hides_the_server_provider(): void
@@ -92,6 +118,8 @@ class FilterContractGenerationTest extends TestCase
             $this->assertSame(1, preg_match('/export type ResourceDefinition = \{(.*?)\};/s', $output, $definition));
             $this->assertStringContainsString('key: string', $definition[1]);
             $this->assertStringNotContainsString('filterProvider', $definition[1]);
+            $this->assertStringNotContainsString('summaryProvider', $definition[1]);
+            $this->assertStringContainsString('figures: Schemastud.Frame.Data.SummaryFigureData[]', $output);
         } finally {
             if (is_file($directory.'/frame.d.ts')) {
                 unlink($directory.'/frame.d.ts');

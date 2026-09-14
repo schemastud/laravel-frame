@@ -11,7 +11,8 @@ use Schemastud\Frame\Routing\ResourceRoutes;
  * setting `frame.middleware`. The manifest is always registered; the resource CRUD + facets
  * socket is opt-out via `frame.register_resource_routes` (a host that still hand-rolls its
  * own resource endpoints sets it false). The socket resolves its per-resource plug through
- * the host-bound FrameResourceHandlerResolver and each resource's declared filter provider.
+ * the host-bound FrameResourceHandlerResolver and each resource's declared filter and summary
+ * providers.
  */
 Route::middleware(config('frame.middleware', ['web']))
     ->prefix(config('frame.route_prefix', 'frame'))
@@ -27,5 +28,6 @@ Route::middleware(config('frame.middleware', ['web']))
             Route::delete('resources/{resource}/records/{id}', [FrameResourceController::class, 'destroy'])->name('frame.resources.destroy');
 
             ResourceRoutes::filters();
+            ResourceRoutes::summary();
         }
     });

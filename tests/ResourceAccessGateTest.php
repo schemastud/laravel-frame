@@ -107,6 +107,7 @@ class ResourceAccessGateTest extends TestCase
             'show' => ['getJson', 'frame/resources/closed/records/1'],
             'schema' => ['getJson', 'frame/resources/closed/schema'],
             'filter-schema' => ['getJson', 'frame/resources/closed/filters/schema'],
+            'summary' => ['getJson', 'frame/resources/closed/summary'],
             'store' => ['postJson', 'frame/resources/closed'],
             'update' => ['putJson', 'frame/resources/closed/records/1'],
             'destroy' => ['deleteJson', 'frame/resources/closed/records/1'],

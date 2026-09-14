@@ -56,6 +56,8 @@ class ResourceDefinition extends Data
      * @param  'single'|'subnav'|'master-detail'|null  $layout  inner-layout grammar emitted on the ContextManifest (null = the socket's SingleColumn fallback)
      * @param  string  $singularLabel  the resource's display SINGULAR — the noun a create affordance says ("New scaffold pack"). Empty (the default) ⇒ inflected from `$nav->label` (or the key). It exists because the inflector MANGLES mass/irregular nouns (`media` → "Medium"), which is the same reason the producer's own declaration carries the slot; declaring it here is how that declared word reaches a shell instead of dying in the docs generator. Display-only: it carries no capability and gates nothing.
      * @param  'frame'|'host'  $createAffordance  WHERE this resource's create affordance lives, and the only new slot here: `'frame'` (the default, and today's behaviour) means frame's own list Toolbar emits the "New …" button; `'host'` means the host's page chrome owns it — a title-row button, a reveal-once dialog — so frame emits none. It is a PRESENTATION slot, deliberately not a capability one: $creatable already answers "may this be created at all", and a resource can be perfectly creatable while its affordance lives somewhere frame cannot see. The two are combined into one resolved value on the {@see ContextManifest}, never on the client, so `creatable` keeps exactly one spelling.
+     * @param  class-string<\Schemastud\Frame\Contracts\ResourceFilterProvider>|null  $filterProvider  the resource's declared filter capability. Server-side only: never on the wire, never in the TS type; a producer names it and frame container-makes it after the access gate.
+     * @param  class-string<\Schemastud\Frame\Contracts\ResourceSummaryProvider>|null  $summaryProvider  the resource's declared summary capability (`resources/{resource}/summary`), mirroring `$filterProvider` slot for slot: hidden from the wire and the TS type, preserved by {@see withOverrides()}, resolved only after the access gate. Null ⇒ the route answers 404.
      */
     public function __construct(
         public string $key,
@@ -78,6 +80,9 @@ class ResourceDefinition extends Data
         /** @var class-string<\Schemastud\Frame\Contracts\ResourceFilterProvider>|null */
         #[Hidden, HiddenFromTypeScript, Keyword(Keywords::Hidden)]
         public ?string $filterProvider = null,
+        /** @var class-string<\Schemastud\Frame\Contracts\ResourceSummaryProvider>|null */
+        #[Hidden, HiddenFromTypeScript, Keyword(Keywords::Hidden)]
+        public ?string $summaryProvider = null,
     ) {}
 
     /**
@@ -138,6 +143,8 @@ class ResourceDefinition extends Data
      * @param  'enriched'|'bare'|null  $form
      * @param  'single'|'subnav'|'master-detail'|null  $layout
      * @param  'frame'|'host'|null  $createAffordance
+     * @param  class-string|null  $filterProvider
+     * @param  class-string|null  $summaryProvider
      */
     public function withOverrides(
         ?string $key = null,
@@ -155,6 +162,7 @@ class ResourceDefinition extends Data
         ?string $createAffordance = null,
         ?string $singularLabel = null,
         ?string $filterProvider = null,
+        ?string $summaryProvider = null,
         // NavMetadata overlay — each rebuilds the nav field-by-field:
         ?string $label = null,
         ?string $group = null,
@@ -187,6 +195,7 @@ class ResourceDefinition extends Data
             createAffordance: $createAffordance ?? $this->createAffordance,
             singularLabel: $singularLabel ?? $this->singularLabel,
             filterProvider: $filterProvider ?? $this->filterProvider,
+            summaryProvider: $summaryProvider ?? $this->summaryProvider,
         );
     }
 }

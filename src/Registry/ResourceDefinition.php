@@ -3,6 +3,8 @@
 namespace Schemastud\Frame\Registry;
 
 use Illuminate\Support\Str;
+use Schemastud\DataSchemas\Attributes\Keyword;
+use Schemastud\DataSchemas\Keywords;
 use Schemastud\Frame\Http\Controllers\FrameManifestController;
 use Spatie\LaravelData\Attributes\Hidden;
 use Spatie\LaravelData\Attributes\WithTransformer;
@@ -74,7 +76,7 @@ class ResourceDefinition extends Data
         public string $createAffordance = 'frame',
         public string $singularLabel = '',
         /** @var class-string<\Schemastud\Frame\Contracts\ResourceFilterProvider>|null */
-        #[Hidden, HiddenFromTypeScript]
+        #[Hidden, HiddenFromTypeScript, Keyword(Keywords::Hidden)]
         public ?string $filterProvider = null,
     ) {}
 

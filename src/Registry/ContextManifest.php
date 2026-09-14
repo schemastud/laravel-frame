@@ -11,11 +11,12 @@ use Schemastud\Frame\Contracts\ResourceContextContributor;
  * Top-level-resource-scoped: only the root and its DIRECT properties carry the
  * keyword; nested sub-DTOs are NOT recursed.
  *
- *  - `known`    the closed five-context enum.
- *  - `inherits` static inheritance edges (`row-cell` falls back to `edit`).
- *  - `byNode`   pointer => `{context => entry}`; key "" is the root (class-level
- *               `#[WidgetIn('list-item')]` / `#[RowActions]`), each property name its
- *               per-context map.
+ *  - `known`    the closed seven-context enum.
+ *  - `inherits` static inheritance edges (`row-cell` falls back to `edit`; `overview`
+ *               falls back to `summary`).
+ *  - `byNode`   pointer => `{context => entry}`; key "" is the root, carrying every
+ *               class-level declaration (`list-item`, `summary`, `overview`, and the
+ *               `#[RowActions]` list-column), each property name its per-context map.
  *
  * The per-context projection + validation is shared with {@see WidgetContextsStrategy}
  * via {@see WidgetContextProjector}.
@@ -54,7 +55,8 @@ class ContextManifest
 
         $byNode = [];
 
-        // Root ("") carries the class-level declarations (list-item / row-actions).
+        // Root ("") carries the class-level declarations (list-item / summary / overview /
+        // row-actions).
         $rootMap = $projector->forClass($reflection);
 
         if (! empty($rootMap)) {
@@ -70,17 +72,22 @@ class ContextManifest
             }
         }
 
-        // The plug half. Merged AFTER reflection so a contributed pointer can never silently
-        // shadow one of the resource's own properties — a contributed pointer is dotted and a
-        // reflected one is a bare property name, so the two namespaces cannot collide, but the
-        // ordering makes that an invariant rather than a coincidence.
+        // The plug half. Merged PER POINTER with reflection winning, so a contributed node can
+        // never silently shadow one of the resource's own declarations. A contributed pointer
+        // is dotted and a reflected property pointer is a bare name, so those two namespaces
+        // cannot collide — but the root pointer "" is shared: a contributor returning "" would,
+        // under a pointer-level merge, replace the reflected class-level map wholesale. Merging
+        // one level down lets a contributor ADD a context at any pointer (including the root)
+        // while a reflected context at the same pointer keeps the class's own entry.
         if ($this->contributor !== null && $key !== null) {
-            $byNode = array_merge($byNode, $this->contributor->nodesFor($key));
+            foreach ($this->contributor->nodesFor($key) as $pointer => $contributed) {
+                $byNode[$pointer] = array_merge($contributed, $byNode[$pointer] ?? []);
+            }
         }
 
         return [
             'byNode' => $byNode,
-            'inherits' => ['row-cell' => ['edit']],
+            'inherits' => ['row-cell' => ['edit'], 'overview' => ['summary']],
             'known' => WidgetContextProjector::KnownContexts,
             // The resource's declared inner-layout grammar (ticket 31) — the FrameLayout
             // socket's `variant` token. Handed in from the resource's ResourceDefinition

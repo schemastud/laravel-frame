@@ -3,17 +3,21 @@
 namespace Schemastud\Frame\Tests;
 
 use InvalidArgumentException;
+use Schemastud\Frame\Attributes\Overview;
+use Schemastud\Frame\Attributes\Summary;
 use Schemastud\Frame\Attributes\WidgetIn;
 use Schemastud\Frame\Contracts\ResourceContextContributor;
 use Schemastud\Frame\Registry\ContextManifest;
 use Schemastud\Frame\Tests\Fixtures\BadClassContextData;
 use Schemastud\Frame\Tests\Fixtures\ContactResourceData;
 use Schemastud\Frame\Tests\Fixtures\RowActionsResourceData;
+use Schemastud\Frame\Tests\Fixtures\SummaryOverviewResourceData;
 
 /**
  * The {byNode, inherits, known} render-context block for one resource's Data class —
- * root ("") carries class-level list-item/row-actions, each property carries its
- * per-context map. Shares projection + validation with the strategy.
+ * root ("") carries the class-level list-item/summary/overview/row-actions entries,
+ * each property carries its per-context map. Shares projection + validation with the
+ * strategy.
  */
 class ContextManifestTest extends TestCase
 {
@@ -22,17 +26,20 @@ class ContextManifestTest extends TestCase
         return (new ContextManifest)->forResource(ContactResourceData::class);
     }
 
-    public function test_known_is_the_closed_five_context_enum(): void
+    public function test_known_is_the_closed_seven_context_enum(): void
     {
         $this->assertSame(
-            ['edit', 'detail', 'list-column', 'list-item', 'row-cell'],
+            ['edit', 'detail', 'list-column', 'list-item', 'row-cell', 'summary', 'overview'],
             $this->block()['known'],
         );
     }
 
-    public function test_inherits_declares_row_cell_falls_back_to_edit(): void
+    public function test_inherits_declares_row_cell_falls_back_to_edit_and_overview_to_summary(): void
     {
-        $this->assertSame(['row-cell' => ['edit']], $this->block()['inherits']);
+        $this->assertSame(
+            ['row-cell' => ['edit'], 'overview' => ['summary']],
+            $this->block()['inherits'],
+        );
     }
 
     public function test_root_node_carries_the_class_level_list_item(): void
@@ -108,6 +115,62 @@ class ContextManifestTest extends TestCase
         (new ContextManifest)->forResource(BadClassContextData::class);
     }
 
+    // --- The collection grain: `summary` and `overview` (realm-dashboards ticket 01) ---
+
+    public function test_class_level_summary_and_overview_project_to_the_root_pointer(): void
+    {
+        $root = (new ContextManifest)->forResource(SummaryOverviewResourceData::class)['byNode'][''];
+
+        $this->assertSame([
+            'summary' => [
+                'participates' => true,
+                'widget' => 'stat-row',
+            ],
+            'overview' => [
+                'participates' => true,
+                'widget' => 'figure-card',
+                'options' => ['period' => 'month', 'recent' => 5],
+            ],
+        ], $root);
+    }
+
+    public function test_summary_can_opt_out_and_overview_can_refuse_the_cascade(): void
+    {
+        $subject = new #[Summary(false)] #[Overview(inheritsBinding: false)] class {};
+
+        $root = (new ContextManifest)->forResource($subject::class)['byNode'][''];
+
+        $this->assertSame(['participates' => false], $root['summary']);
+        $this->assertSame(['participates' => true, 'inheritsBinding' => false], $root['overview']);
+    }
+
+    public function test_summary_on_a_property_throws(): void
+    {
+        $subject = new class
+        {
+            #[WidgetIn('summary', 'stat-row')]
+            public string $field = '';
+        };
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('[summary] is whole-collection (class-level) only');
+
+        (new ContextManifest)->forResource($subject::class);
+    }
+
+    public function test_overview_on_a_property_throws(): void
+    {
+        $subject = new class
+        {
+            #[WidgetIn('overview')]
+            public string $field = '';
+        };
+
+        $this->expectException(InvalidArgumentException::class);
+
+        (new ContextManifest)->forResource($subject::class);
+    }
+
     public function test_class_level_row_actions_projects_as_a_root_list_column_entry(): void
     {
         $root = (new ContextManifest)->forResource(RowActionsResourceData::class)['byNode'][''];
@@ -171,6 +234,39 @@ class ContextManifestTest extends TestCase
         foreach ($reflected as $pointer => $map) {
             $this->assertSame($map, $byNode[$pointer]);
         }
+    }
+
+    public function test_a_contributor_at_the_root_pointer_cannot_clobber_the_reflected_class_level_entries(): void
+    {
+        // The root pointer is the one namespace reflection and the plug SHARE: a contributor
+        // returning "" used to replace the whole reflected class-level map under a
+        // pointer-level merge. The merge is per pointer, so a contributed context is ADDED
+        // and a reflected one keeps the class's own entry.
+        $contributed = [
+            'list-item' => ['participates' => true, 'widget' => 'contributed-card'],
+            'summary' => ['participates' => true, 'widget' => 'stat-row'],
+        ];
+
+        $root = (new ContextManifest($this->contributor(['contacts' => ['' => $contributed]])))
+            ->forResource(ContactResourceData::class, null, 'contacts')['byNode'][''];
+
+        $this->assertSame(['participates' => true, 'widget' => 'contact-card'], $root['list-item']);
+        $this->assertSame(['participates' => true, 'widget' => 'stat-row'], $root['summary']);
+    }
+
+    public function test_a_contributor_at_a_property_pointer_cannot_clobber_the_reflected_context(): void
+    {
+        $contributed = [
+            'edit' => ['participates' => true, 'widget' => 'contributed-input'],
+            'detail' => ['participates' => true, 'widget' => 'contributed-detail'],
+        ];
+
+        $email = (new ContextManifest($this->contributor(['contacts' => ['email' => $contributed]])))
+            ->forResource(ContactResourceData::class, null, 'contacts')['byNode']['email'];
+
+        $this->assertSame('email-input', $email['edit']['widget']);
+        $this->assertSame('contributed-detail', $email['detail']['widget']);
+        $this->assertTrue($email['row-cell']['participates']);
     }
 
     /** @param  array<string, array<string, array<string, mixed>>>  $nodes */

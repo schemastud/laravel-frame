@@ -18,11 +18,26 @@ use Schemastud\Frame\Strategies\WidgetContextsStrategy;
  */
 class WidgetContextProjector
 {
-    /** The closed five-context enum. */
-    public const KnownContexts = ['edit', 'detail', 'list-column', 'list-item', 'row-cell'];
+    /**
+     * The closed seven-context enum, spanning three subject grains: per-property
+     * (`edit`, `detail`, `list-column`, `row-cell`), whole-record (`list-item`) and
+     * whole-collection (`summary`, `overview`). See {@see WidgetIn} for the grains.
+     */
+    public const KnownContexts = ['edit', 'detail', 'list-column', 'list-item', 'row-cell', 'summary', 'overview'];
 
-    /** Contexts that are whole-record (class-level) only. */
-    private const ClassOnlyContexts = ['list-item'];
+    /**
+     * Contexts whose subject is ONE RECORD — class-level only, since no single
+     * property can stand for the record.
+     */
+    public const RecordContexts = ['list-item'];
+
+    /**
+     * Contexts whose subject is the WHOLE COLLECTION — class-level only, for the same
+     * reason one grain up: `summary` compresses the collection to figures, `overview`
+     * expands it to a card with a body. The cascade `overview ← summary` is declared
+     * by {@see ContextManifest}, not here.
+     */
+    public const CollectionContexts = ['summary', 'overview'];
 
     /**
      * Project a property's WidgetIn-family attributes to the `{context => entry}` map.
@@ -39,8 +54,8 @@ class WidgetContextProjector
     }
 
     /**
-     * Project a class's WidgetIn-family attributes (list-item / row-actions) to the
-     * `{context => entry}` map.
+     * Project a class's WidgetIn-family attributes (list-item / summary / overview /
+     * row-actions) to the `{context => entry}` map.
      *
      * @param  ReflectionClass<object>  $class
      * @return array<string, array<string, mixed>>
@@ -127,7 +142,10 @@ class WidgetContextProjector
             );
         }
 
-        $classOnly = in_array($context, self::ClassOnlyContexts, true);
+        // Record and collection contexts are both class-only: their subject is larger
+        // than any one property.
+        $classOnly = in_array($context, self::RecordContexts, true)
+            || in_array($context, self::CollectionContexts, true);
 
         // The class-level #[RowActions] sugar is a `list-column` binding of the `row-actions`
         // widget placed on the record (the row-actions column is not backed by any single
@@ -142,8 +160,10 @@ class WidgetContextProjector
         }
 
         if (! $classLevel && $classOnly) {
+            $grain = in_array($context, self::CollectionContexts, true) ? 'whole-collection' : 'whole-record';
+
             throw new InvalidArgumentException(
-                "Widget context [{$context}] is whole-record (class-level) only; it cannot be declared on a property."
+                "Widget context [{$context}] is {$grain} (class-level) only; it cannot be declared on a property."
             );
         }
     }

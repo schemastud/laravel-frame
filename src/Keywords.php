@@ -24,8 +24,9 @@ class Keywords
 
     /**
      * The per-context widget map projected from the `#[WidgetIn]` family — one
-     * property's `{context => entry}` participation across the closed five-context
-     * enum (edit|detail|list-column|list-item|row-cell).
+     * property's `{context => entry}` participation across the per-property half of
+     * the closed seven-context enum (edit|detail|list-column|row-cell); the class-only
+     * contexts (list-item, summary, overview) ride the ContextManifest root instead.
      */
     public const WidgetContexts = 'x-stud-widget-contexts';
 

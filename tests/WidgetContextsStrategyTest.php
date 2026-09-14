@@ -124,6 +124,25 @@ class WidgetContextsStrategyTest extends TestCase
         );
     }
 
+    public function test_collection_context_on_a_property_throws(): void
+    {
+        // The collection grain (`summary`/`overview`) is class-only exactly as the record
+        // grain (`list-item`) is: the per-property strategy path must refuse it too.
+        $subject = new class
+        {
+            #[WidgetIn('summary')]
+            public string $field = '';
+        };
+
+        $this->expectException(InvalidArgumentException::class);
+
+        (new WidgetContextsStrategy)->apply(
+            new ReflectionProperty($subject, 'field'),
+            [],
+            new SchemaStrategyContext([], 'request'),
+        );
+    }
+
     public function test_list_item_on_a_property_throws(): void
     {
         $subject = new class

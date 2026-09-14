@@ -4,7 +4,6 @@ namespace Schemastud\Frame\Tests;
 
 use Mockery;
 use Schemastud\DataSchemas\Generators\JsonSchemaGenerator;
-use Schemastud\Frame\Contracts\FrameFilterProvider;
 use Schemastud\Frame\Contracts\FrameResourceHandlerResolver;
 use Schemastud\Frame\Contracts\ResourceRegistry;
 use Schemastud\Frame\Registry\InMemoryResourceRegistry;
@@ -48,7 +47,6 @@ class ResourceSchemaEndpointTest extends TestCase
         // touches neither — it reads only the registry. Mocks with no expectations, deliberately:
         // if this endpoint ever starts calling a handler, these fail loudly rather than absorbing it.
         $this->app->instance(FrameResourceHandlerResolver::class, Mockery::mock(FrameResourceHandlerResolver::class));
-        $this->app->instance(FrameFilterProvider::class, Mockery::mock(FrameFilterProvider::class));
     }
 
     private function definition(string $key, string $data): ResourceDefinition

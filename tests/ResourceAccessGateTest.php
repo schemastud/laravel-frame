@@ -5,7 +5,6 @@ namespace Schemastud\Frame\Tests;
 use Illuminate\Foundation\Auth\User;
 use Mockery;
 use PHPUnit\Framework\Attributes\DataProvider;
-use Schemastud\Frame\Contracts\FrameFilterProvider;
 use Schemastud\Frame\Contracts\FrameResourceHandler;
 use Schemastud\Frame\Contracts\FrameResourceHandlerResolver;
 use Schemastud\Frame\Contracts\ResourceAccessGate;
@@ -49,11 +48,6 @@ class ResourceAccessGateTest extends TestCase
             ->register($this->definition('open'));
 
         $this->app->instance(ResourceRegistry::class, $registry);
-
-        $filters = Mockery::mock(FrameFilterProvider::class);
-        $filters->shouldReceive('for')->andReturn([]);
-        $filters->shouldReceive('options')->andReturn([]);
-        $this->app->instance(FrameFilterProvider::class, $filters);
 
         // No expectations. A handler reached at all on a refused resource is a gate that did not
         // fire, and Mockery fails that loudly rather than absorbing it into a 200.
@@ -112,7 +106,7 @@ class ResourceAccessGateTest extends TestCase
             'index' => ['getJson', 'frame/resources/closed'],
             'show' => ['getJson', 'frame/resources/closed/records/1'],
             'schema' => ['getJson', 'frame/resources/closed/schema'],
-            'filter-schema' => ['getJson', 'frame/filter-schema/closed'],
+            'filter-schema' => ['getJson', 'frame/resources/closed/filters/schema'],
             'store' => ['postJson', 'frame/resources/closed'],
             'update' => ['putJson', 'frame/resources/closed/records/1'],
             'destroy' => ['deleteJson', 'frame/resources/closed/records/1'],

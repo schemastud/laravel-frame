@@ -6,7 +6,6 @@ use Illuminate\Foundation\Auth\User;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use Mockery;
-use Schemastud\Frame\Contracts\FrameFilterProvider;
 use Schemastud\Frame\Contracts\FrameResourceHandler;
 use Schemastud\Frame\Contracts\FrameResourceHandlerResolver;
 use Schemastud\Frame\Contracts\ResourceRegistry;
@@ -54,7 +53,6 @@ class ResourceWriteAuthorizationTest extends TestCase
             ->register($this->definition('union', null));
 
         $this->app->instance(ResourceRegistry::class, $registry);
-        $this->app->instance(FrameFilterProvider::class, Mockery::mock(FrameFilterProvider::class));
 
         // No expectations set. A handler reached at all is a gate that did not fire, and Mockery
         // fails that loudly rather than absorbing it into a 200.

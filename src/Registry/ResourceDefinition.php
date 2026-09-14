@@ -73,6 +73,9 @@ class ResourceDefinition extends Data
         public bool $showable = true,
         public string $createAffordance = 'frame',
         public string $singularLabel = '',
+        /** @var class-string<\Schemastud\Frame\Contracts\ResourceFilterProvider>|null */
+        #[Hidden, HiddenFromTypeScript]
+        public ?string $filterProvider = null,
     ) {}
 
     /**
@@ -149,6 +152,7 @@ class ResourceDefinition extends Data
         ?bool $showable = null,
         ?string $createAffordance = null,
         ?string $singularLabel = null,
+        ?string $filterProvider = null,
         // NavMetadata overlay — each rebuilds the nav field-by-field:
         ?string $label = null,
         ?string $group = null,
@@ -180,6 +184,7 @@ class ResourceDefinition extends Data
             showable: $showable ?? $this->showable,
             createAffordance: $createAffordance ?? $this->createAffordance,
             singularLabel: $singularLabel ?? $this->singularLabel,
+            filterProvider: $filterProvider ?? $this->filterProvider,
         );
     }
 }

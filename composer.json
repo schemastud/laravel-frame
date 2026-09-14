@@ -12,7 +12,8 @@
         "schemastud/laravel-data-schemas": "dev-main",
         "spatie/laravel-data": "^4.9",
         "spatie/laravel-package-tools": "^1.16",
-        "symfony/finder": "^6.0|^7.0|^8.0"
+        "symfony/finder": "^6.0|^7.0|^8.0",
+        "rushing/laravel-data-schemas-scribe": "*"
     },
     "require-dev": {
         "laravel/pint": "^1.0",
@@ -26,6 +27,13 @@
         "spatie/laravel-typescript-transformer": "Emit the ResourceDefinition TS type so the frontend manifest entry IS the backend projection."
     },
     "repositories": [
+        {
+            "type": "path",
+            "url": "../../rushing/laravel-data-schemas-scribe",
+            "options": {
+                "symlink": true
+            }
+        },
         {
             "type": "path",
             "url": "../../rushing/laravel-pipeline-registry",

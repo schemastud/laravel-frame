@@ -1,0 +1,17 @@
+# Resource filter capabilities
+
+Frame resolves filter behavior from `ResourceDefinition::filterProvider`, a server-side class implementing `ResourceFilterProvider`. The class is hidden from the manifest wire and generated TypeScript. Definition overrides preserve it.
+
+The default resource routes expose schema, options, variants, and variant schema below `resources/{resource}/filters`. A host mounting its own resource exposure calls `Routing\ResourceRoutes::filters()` inside its route group, supplying its path, names, and route defaults. Frame resolves the registered resource and applies `ResourceAccessGate` before it resolves the provider. The provider applies any additional domain authorization.
+
+`FilterSchemaResponseData` wraps the schema document in `data` and advertises an optional `savedViewsResource`. That reference names another registered resource whose ordinary CRUD persists views. Frame supplies no transient persistence fallback. A resource without a provider returns an empty object-shaped vocabulary and no saved-view reference; unsupported options or variant schema requests return 404.
+
+Providers return declared Data envelopes for schema, options, and variants. Option sources receive the resource, reference, and search string; implementations must refuse a reference that the resource's vocabulary does not expose. A globally registered source is not authorization to enumerate it through every resource.
+
+The frontend `FrameTransport` consumes these capabilities. Saved-view support is independent of a nonempty vocabulary: a resource can filter without offering persistence. Saved-view list operations must consume ordinary resource pagination completely.
+
+## Migrating the flat filter surface
+
+The former `filter-schema/{resource}`, `filter-options/{ref}`, and `saved-filters` routes no longer mount. Move provider selection from a global binding to the resource declaration and migrate transport calls to the resource root. Persistence belongs to a declared resource and its handler; unbound storage must not report a successful save.
+
+Beam implements the port from its resource declarations and supplies a saved-filter resource. Frame-only applications can provide their own implementations without importing Beam.

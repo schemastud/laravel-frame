@@ -15,14 +15,10 @@ return [
     |                             (manifest + resource socket). A host that mounts
     |                             everything under its own group sets this false.
     | - register_resource_routes: whether the group also ships the resource CRUD +
-    |                             facets socket ({prefix}/resources/*,
-    |                             {prefix}/filter-schema|filter-options|saved-filters).
-    |                             The socket resolves its per-resource plug through the
-    |                             host-bound FrameResourceHandlerResolver /
-    |                             FrameFilterProvider contracts; a host still hand-rolling
-    |                             its own resource endpoints sets this false (manifest
-    |                             only). SavedFilterStore is optional — unbound falls back
-    |                             to a transient saved-views stub.
+    |                             filter capabilities under {prefix}/resources/*.
+    |                             CRUD uses FrameResourceHandlerResolver. Each resource
+    |                             declares its own ResourceFilterProvider; saved views
+    |                             reference another registered resource for ordinary CRUD.
     |
     | Resource DECLARATION + discovery is NOT frame's concern: a producer above frame
     | (the consuming CMS engine's resource registry) owns which resources exist and

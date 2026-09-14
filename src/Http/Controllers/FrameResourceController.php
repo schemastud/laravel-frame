@@ -4,20 +4,17 @@ namespace Schemastud\Frame\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Support\Str;
 use ReflectionClass;
 use Schemastud\DataSchemas\Generators\Generator;
 use Schemastud\Frame\Authorization\ResourceAuthorizer;
-use Schemastud\Frame\Contracts\FrameFilterProvider;
 use Schemastud\Frame\Contracts\FrameResourceHandlerResolver;
 use Schemastud\Frame\Contracts\ResourceRegistry;
-use Schemastud\Frame\Contracts\SavedFilterStore;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * Frame's resource socket — the uniform machinery that drives `@schemastud/frame`'s
  * ListShell / EditShell over `{prefix}/resources/{resource}` and the schema-driven
- * facets bar over `{prefix}/filter-schema|filter-options|saved-filters`. Generic over
+ * facets bar through the resource capability controller. Generic over
  * a registry of resources; the non-uniform per-resource CRUD is the host's plug,
  * resolved through {@see FrameResourceHandlerResolver}. Persistence-agnostic: whether a
  * row is a plain model or a beam particle projection is the handler's concern.
@@ -53,8 +50,8 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  * ambient list — could not refuse them without refusing the tenant realm's resources too.
  *
  * {@see definition()} now asks {@see ResourceAuthorizer::authorizeAccess()} before returning, so
- * every verb here — reads included — passes the reach question, and {@see filterSchema()} asks it
- * directly. Frame does not answer that question: {@see \Schemastud\Frame\Contracts\ResourceAccessGate}
+ * every CRUD verb here passes the reach question. FrameResourceFiltersController applies the same
+ * question before invoking a resource filter provider. Frame does not answer that question: {@see \Schemastud\Frame\Contracts\ResourceAccessGate}
  * is the port, frame's shipped default permits, and the producer that owns realms binds the
  * refusing answer.
  */
@@ -63,7 +60,6 @@ class FrameResourceController
     public function __construct(
         protected ResourceRegistry $registry,
         protected FrameResourceHandlerResolver $resources,
-        protected FrameFilterProvider $filters,
         protected ResourceAuthorizer $authorizer,
     ) {}
 
@@ -170,90 +166,6 @@ class FrameResourceController
         $this->resources->handlerFor($resource)->destroy($definition, $id);
 
         return response()->noContent();
-    }
-
-    // ---- facets endpoints (schema-driven filter bar) ---------------------------
-
-    /**
-     * Get Filter Schema
-     *
-     * The available filters and option references for this resource.
-     */
-    public function filterSchema(string $resource): array
-    {
-        /*
-         * The facets bar's schema for one resource — gated on the same reach axis as the list it filters,
-         * because a filter schema names the resource's columns and its option refs.
-         *
-         * Gated only when the key IS registered, deliberately. This endpoint has always answered for an
-         * unregistered key (the bound {@see FrameFilterProvider} decides; beam's default answers `[]`),
-         * and turning that into a 404 here would be a second, unrelated behaviour change riding on an
-         * authorization fix.
-         */
-        if ($this->registry->has($resource)) {
-            $this->authorizer->authorizeAccess($this->registry->get($resource));
-        }
-
-        return ['data' => $this->filters->for($resource)];
-    }
-
-    public function filterOptions(string $ref): array
-    {
-        return ['data' => $this->filters->options($ref)];
-    }
-
-    /**
-     * List Saved Filters
-     *
-     * Saved views for the requested resource. Returns an empty list when no saved-view store is configured.
-     */
-    public function savedFilters(Request $request): array
-    {
-        /*
-         * Saved views delegate to a bound {@see SavedFilterStore} when the host provides
-         * one; otherwise the read answers empty and the write echoes a transient view (never
-         * persisted) so the facets SavedViews affordance mounts and acts without erroring.
-         */
-        $store = $this->savedFilterStore();
-        $resource = (string) $request->query('resource', '');
-
-        return ['data' => $store ? $store->all($resource) : []];
-    }
-
-    public function saveFilter(Request $request): array
-    {
-        $resource = (string) $request->input('resource', '');
-        $payload = [
-            'name' => (string) $request->input('name', ''),
-            'query_parameters' => (array) $request->input('query_parameters', []),
-        ];
-
-        if ($store = $this->savedFilterStore()) {
-            return ['data' => $store->save($resource, $payload)];
-        }
-
-        return ['data' => [
-            'id' => (string) Str::uuid(),
-            'name' => $payload['name'],
-            'resource' => $resource,
-            'query_parameters' => $payload['query_parameters'],
-            'visibility' => 'private',
-            'is_default' => false,
-        ]];
-    }
-
-    public function deleteSavedFilter(string $id): Response
-    {
-        $this->savedFilterStore()?->delete($id);
-
-        return response()->noContent();
-    }
-
-    // ---------------------------------------------------------------------------
-
-    protected function savedFilterStore(): ?SavedFilterStore
-    {
-        return app()->bound(SavedFilterStore::class) ? app(SavedFilterStore::class) : null;
     }
 
     /**

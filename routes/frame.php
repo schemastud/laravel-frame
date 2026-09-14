@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Schemastud\Frame\Http\Controllers\FrameManifestController;
 use Schemastud\Frame\Http\Controllers\FrameResourceController;
+use Schemastud\Frame\Routing\ResourceRoutes;
 
 /*
  * Frame's server surface, all under one configurable prefix + middleware so a host moves
@@ -10,7 +11,7 @@ use Schemastud\Frame\Http\Controllers\FrameResourceController;
  * setting `frame.middleware`. The manifest is always registered; the resource CRUD + facets
  * socket is opt-out via `frame.register_resource_routes` (a host that still hand-rolls its
  * own resource endpoints sets it false). The socket resolves its per-resource plug through
- * the host-bound FrameResourceHandlerResolver / FrameFilterProvider contracts.
+ * the host-bound FrameResourceHandlerResolver and each resource's declared filter provider.
  */
 Route::middleware(config('frame.middleware', ['web']))
     ->prefix(config('frame.route_prefix', 'frame'))
@@ -25,11 +26,6 @@ Route::middleware(config('frame.middleware', ['web']))
             Route::put('resources/{resource}/records/{id}', [FrameResourceController::class, 'update'])->name('frame.resources.update');
             Route::delete('resources/{resource}/records/{id}', [FrameResourceController::class, 'destroy'])->name('frame.resources.destroy');
 
-            // Schema-driven facets bar (@schemastud/facets transport).
-            Route::get('filter-schema/{resource}', [FrameResourceController::class, 'filterSchema'])->name('frame.filter-schema');
-            Route::get('filter-options/{ref}', [FrameResourceController::class, 'filterOptions'])->name('frame.filter-options');
-            Route::get('saved-filters', [FrameResourceController::class, 'savedFilters'])->name('frame.saved-filters');
-            Route::post('saved-filters', [FrameResourceController::class, 'saveFilter'])->name('frame.saved-filters.store');
-            Route::delete('saved-filters/{id}', [FrameResourceController::class, 'deleteSavedFilter'])->name('frame.saved-filters.destroy');
+            ResourceRoutes::filters();
         }
     });

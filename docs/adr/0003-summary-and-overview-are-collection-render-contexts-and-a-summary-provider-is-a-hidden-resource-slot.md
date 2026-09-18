@@ -76,6 +76,7 @@ access gate (`ResourceDefinition.php:78-80` at `2783dec`).
 
 ## Records
 
-- Commits: laravel-frame `c3979f8`, `3d3ac4b` (ticket 01), `3bbc3d4`, `3cb23da` (ticket 02);
-  `~/Workspaces/js/packages/schemastud` `9140376`, `f12abcb` (01), `97a6bca`, `a95d932` (03).
+- Commits: laravel-frame `c3979f8`, `3d3ac4b` (ticket 01), `3bbc3d4`, `3cb23da` (ticket 02), `8759045`
+  (tone constants on `SummaryFigureData`); `~/Workspaces/js/packages/schemastud` `9140376`, `f12abcb` (01),
+  `97a6bca`, `a95d932` (03), `965dd6e` (README), `13d0a50` (`record-line`, single-page pager).
 - Map: `~/Workspaces/splicewire-ecosystem/.scratch/splicewire/splicewire-ecosystem/realm-dashboards/`.

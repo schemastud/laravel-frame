@@ -69,8 +69,10 @@ access gate (`ResourceDefinition.php:78-80` at `2783dec`).
 - **The provider slot is frame's contract by ADR-0001's test** because frame reads it (the route
   container-makes it). Beam's default — count through the scoped index query — is beam's decision and is
   recorded in the related beam ADR.
-- **Runbook promotion is deferred** until a second host proves a dashboard config-only; this stays
-  repo-local per `docs/conventions/adr-placement.md`.
+- **Promoted to fleet tier 2026-09-18** after three hosts (beam, satellite and tower starters) proved a
+  dashboard config-only: `rushing/splicewire-beam-runbook docs/adr/0005-a-realm-dashboard-is-one-read-only-resource-per-realm-of-card-rows.md`
+  (lifted from `splicewire/laravel-beam docs/adr/0222-…`, citing this ADR for the contexts). This record
+  stays the repo-local original per `docs/conventions/adr-placement.md`.
 
 ## Records
 

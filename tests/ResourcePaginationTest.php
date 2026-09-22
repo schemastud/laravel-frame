@@ -39,6 +39,20 @@ class ResourcePaginationTest extends TestCase
         $this->app->instance(FrameResourceHandlerResolver::class, $resolver);
     }
 
+    public function test_declared_query_schema_describes_pagination_and_keeps_wire_bounds(): void
+    {
+        $schema = app(\Schemastud\DataSchemas\Generators\Generator::class)->forRequest()
+            ->generate(new \ReflectionClass(\Schemastud\Frame\Data\ResourceQueryData::class));
+
+        foreach (['page', 'per_page', 'cursor'] as $name) {
+            $this->assertNotEmpty($schema['properties'][$name]['description'] ?? null, $name);
+        }
+        $this->assertArrayNotHasKey('perPage', $schema['properties']);
+        $this->assertSame(1, $schema['properties']['page']['minimum']);
+        $this->assertSame(1, $schema['properties']['per_page']['minimum']);
+        $this->assertSame(100, $schema['properties']['per_page']['maximum']);
+    }
+
     public function test_flat_rows_use_the_requested_offset_page(): void
     {
         $this->handler->shouldReceive('index')->once()->andReturn([

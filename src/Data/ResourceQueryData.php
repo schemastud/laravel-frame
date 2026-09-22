@@ -15,10 +15,11 @@ class ResourceQueryData extends Data
     public function __construct(
         #[Description('A declared filter variant of this resource, used for schema, execution and saved views.')]
         public string|Optional|null $filterVariant = new Optional,
-        #[Min(1)]
+        #[Description('Page number for resources that use offset pagination.'), Min(1)]
         public int|Optional $page = new Optional,
-        #[MapInputName('per_page'), Min(1), Max(100)]
+        #[Description('Maximum number of rows to return per page.'), MapInputName('per_page'), Min(1), Max(100)]
         public int|Optional $per_page = new Optional,
+        #[Description('Opaque continuation cursor returned by the previous page.')]
         public string|Optional|null $cursor = new Optional,
     ) {}
 }

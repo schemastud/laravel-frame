@@ -6,10 +6,12 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use ReflectionClass;
 use Rushing\LaravelDataSchemasScribe\Attributes\QueryFromData;
+use Rushing\LaravelDataSchemasScribe\Attributes\ResponseFromData;
 use Schemastud\DataSchemas\Generators\Generator;
 use Schemastud\Frame\Authorization\ResourceAuthorizer;
 use Schemastud\Frame\Contracts\FrameResourceHandlerResolver;
 use Schemastud\Frame\Contracts\ResourceRegistry;
+use Schemastud\Frame\Data\ResourcePageData;
 use Schemastud\Frame\Data\ResourceQueryData;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -21,9 +23,9 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  * resolved through {@see FrameResourceHandlerResolver}. Persistence-agnostic: whether a
  * row is a plain model or a beam particle projection is the handler's concern.
  *
- * Envelopes (unchanged from the ported host shape, so any existing JS transport is a
- * straight lift): list → `{data,total,page,perPage}`, single → `{data}`, schema → the
- * raw generated JSON Schema, delete → 204.
+ * List pages are declared ResourcePageData: offset pages carry total/page, cursor pages
+ * carry nextCursor (including null at the end). Single → `{data}`, schema → the raw
+ * generated JSON Schema, delete → 204.
  *
  * ## The write axis is gated here, and the read axis deliberately is not
  *
@@ -66,15 +68,19 @@ class FrameResourceController
     ) {}
 
     #[QueryFromData(ResourceQueryData::class)]
+    #[ResponseFromData(ResourcePageData::class)]
     public function index(Request $request, string $resource): array
     {
         $definition = $this->definition($resource);
         ResourceQueryData::validateAndCreate($request->query());
         $result = $this->resources->handlerFor($resource)->index($definition, $request->query());
 
-        // A handler may pre-paginate; otherwise wrap the flat list here.
+        // A null continuation is still a cursor page. Never paginate either page form twice.
+        if (array_key_exists('nextCursor', $result)) {
+            return ResourcePageData::cursor($result['data'], $result['perPage'], $result['nextCursor'])->toArray();
+        }
         if (isset($result['data']) && array_key_exists('total', $result)) {
-            return $result;
+            return ResourcePageData::offset($result['data'], $result['total'], $result['page'], $result['perPage'])->toArray();
         }
 
         return $this->paginate($result, $request);
@@ -208,11 +214,8 @@ class FrameResourceController
         $perPage = max(1, min(100, (int) $request->query('per_page', 25)));
         $total = count($rows);
 
-        return [
-            'data' => array_values(array_slice($rows, ($page - 1) * $perPage, $perPage)),
-            'total' => $total,
-            'page' => $page,
-            'perPage' => $perPage,
-        ];
+        return ResourcePageData::offset(
+            array_slice($rows, ($page - 1) * $perPage, $perPage), $total, $page, $perPage,
+        )->toArray();
     }
 }

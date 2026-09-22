@@ -2,6 +2,7 @@
 
 namespace Schemastud\Frame\Contracts;
 
+use Schemastud\Frame\Data\ResourcePageData;
 use Schemastud\Frame\Http\Controllers\FrameResourceController;
 use Schemastud\Frame\Registry\ResourceDefinition;
 
@@ -19,9 +20,11 @@ interface FrameResourceHandler
     /**
      * A page of list rows (each a plain assoc array keyed by field name). Honors the
      * `filter[...]` / `sort` params facets sends. May return a flat array (the
-     * controller paginates) or a pre-paginated `{data,total,page,perPage}` envelope.
+     * controller paginates) or a pre-paginated {@see ResourcePageData} envelope. Offset
+     * pages carry total/page; cursor pages carry nextCursor, including null at the end.
+     * A cursor page never invents a total or offset page number.
      *
-     * @return array<int, array<string, mixed>>
+     * @return array<int, array<string, mixed>>|array<string, mixed>
      */
     public function index(ResourceDefinition $definition, array $params): array;
 

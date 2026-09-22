@@ -34,7 +34,9 @@ interface FrameResourceHandler
     public function show(ResourceDefinition $definition, string $id): array;
 
     /**
-     * Create from input; returns the freshly-projected row.
+     * Create from input; returns the declared create result as an array.
+     * Its shape is ResourceDefinition::resolvedCreateResultData(), which defaults
+     * to the read projection. Update and later reads retain their ordinary shapes.
      *
      * @return array<string, mixed>
      */

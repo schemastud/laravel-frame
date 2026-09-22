@@ -12,6 +12,7 @@ use Schemastud\Frame\Contracts\ResourceRegistry;
 use Schemastud\Frame\Registry\InMemoryResourceRegistry;
 use Schemastud\Frame\Registry\NavMetadata;
 use Schemastud\Frame\Registry\ResourceDefinition;
+use Schemastud\Frame\Tests\Fixtures\SampleCreateResultData;
 use Schemastud\Frame\Tests\Fixtures\SampleModel;
 use Schemastud\Frame\Tests\Fixtures\SamplePolicy;
 use Schemastud\Frame\Tests\Fixtures\SampleResourceData;
@@ -104,11 +105,13 @@ class ResourceWriteAuthorizationTest extends TestCase
     }
 
     /** Bind a handler that records whether it was reached, for the allow-path assertions. */
-    private function expectHandlerReached(): object
+    private function expectHandlerReached(?array $createResult = null): object
     {
-        $handler = new class implements FrameResourceHandler
+        $handler = new class($createResult) implements FrameResourceHandler
         {
             public bool $reached = false;
+
+            public function __construct(private ?array $createResult) {}
 
             public function index(ResourceDefinition $definition, array $params): array
             {
@@ -124,7 +127,7 @@ class ResourceWriteAuthorizationTest extends TestCase
             {
                 $this->reached = true;
 
-                return ['id' => '1'];
+                return $this->createResult ?? ['id' => '1'];
             }
 
             public function update(ResourceDefinition $definition, string $id, array $input): array
@@ -191,6 +194,26 @@ class ResourceWriteAuthorizationTest extends TestCase
         $handler->reached = false;
         $this->actingAs($this->actor())->deleteJson('frame/resources/sample/records/1')->assertNoContent();
         $this->assertTrue($handler->reached, 'destroy never reached the handler');
+    }
+
+    public function test_a_custom_create_result_is_returned_intact_after_authorization(): void
+    {
+        $definition = $this->definition('sample', SampleModel::class)->withOverrides(
+            createResultData: SampleCreateResultData::class,
+        );
+        $this->app->instance(ResourceRegistry::class, (new InMemoryResourceRegistry)->register($definition));
+        $result = new SampleCreateResultData(new SampleResourceData('Created'), 'one-time-receipt');
+        $handler = $this->expectHandlerReached($result->toArray());
+
+        $this->actingAs($this->actor())->postJson('frame/resources/sample', [])->assertForbidden();
+        $this->assertFalse($handler->reached);
+
+        SamplePolicy::$allows = ['create', 'update'];
+        $this->postJson('frame/resources/sample', ['title' => 'Created'])->assertOk()
+            ->assertExactJson(['data' => $result->toArray()]);
+        $this->assertTrue($handler->reached);
+        $this->putJson('frame/resources/sample/records/1', [])->assertOk()
+            ->assertExactJson(['data' => ['id' => '1']]);
     }
 
     /**

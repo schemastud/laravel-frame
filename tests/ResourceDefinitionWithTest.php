@@ -4,6 +4,7 @@ namespace Schemastud\Frame\Tests;
 
 use Schemastud\Frame\Registry\NavMetadata;
 use Schemastud\Frame\Registry\ResourceDefinition;
+use Schemastud\Frame\Tests\Fixtures\SampleCreateResultData;
 use Schemastud\Frame\Tests\Fixtures\SampleModel;
 use Schemastud\Frame\Tests\Fixtures\SampleResourceData;
 
@@ -70,6 +71,19 @@ class ResourceDefinitionWithTest extends TestCase
         $this->assertSame('sample.view', $original->policy);
         $this->assertSame('bare', $original->form);
         $this->assertTrue($original->showable);
+    }
+
+    public function test_presentation_overrides_preserve_the_declared_create_result(): void
+    {
+        $original = $this->definition()->withOverrides(createResultData: SampleCreateResultData::class);
+        $copy = $original->withOverrides(label: 'Renamed', policy: 'sample.manage');
+
+        $this->assertSame(SampleCreateResultData::class, $copy->resolvedCreateResultData());
+        $this->assertSame(SampleCreateResultData::class, $original->createResultData);
+        $this->assertNull($this->definition()->createResultData);
+        $this->assertSame(SampleResourceData::class, $copy->withOverrides(
+            createResultData: SampleResourceData::class,
+        )->resolvedCreateResultData());
     }
 
     public function test_a_nav_overlay_rebuilds_navmetadata_field_by_field(): void

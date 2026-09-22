@@ -11,6 +11,7 @@ use Schemastud\Frame\Registry\NavMetadata;
 use Schemastud\Frame\Registry\ResourceDefinition;
 use Schemastud\Frame\Tests\Fixtures\ContactResourceData;
 use Schemastud\Frame\Tests\Fixtures\NarrowSampleGenerator;
+use Schemastud\Frame\Tests\Fixtures\SampleCreateResultData;
 use Schemastud\Frame\Tests\Fixtures\SampleModel;
 use Schemastud\Frame\Tests\Fixtures\SampleResourceData;
 
@@ -73,6 +74,20 @@ class ResourceSchemaEndpointTest extends TestCase
         $this->assertSame('object', $response->json('type'));
         $this->assertArrayHasKey('title', $response->json('properties'));
         $this->assertNull($response->json('x-generated-by'));
+    }
+
+    public function test_create_result_selection_does_not_change_the_input_schema(): void
+    {
+        $definition = $this->definition('sample', SampleResourceData::class)->withOverrides(
+            editData: ContactResourceData::class,
+            createResultData: SampleCreateResultData::class,
+        );
+        $this->app->instance(ResourceRegistry::class, (new InMemoryResourceRegistry)->register($definition));
+
+        $response = $this->getJson('frame/resources/sample/schema')->assertOk();
+        $this->assertArrayHasKey('email', $response->json('properties'));
+        $this->assertArrayNotHasKey('receipt', $response->json('properties'));
+        $this->assertArrayNotHasKey('record', $response->json('properties'));
     }
 
     /** The thingsontv shape: narrow generator FIRST, and it wins for a class it accepts. */

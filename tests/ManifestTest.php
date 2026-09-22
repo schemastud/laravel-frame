@@ -6,6 +6,7 @@ use Schemastud\Frame\Contracts\ResourceRegistry;
 use Schemastud\Frame\Registry\InMemoryResourceRegistry;
 use Schemastud\Frame\Registry\NavMetadata;
 use Schemastud\Frame\Registry\ResourceDefinition;
+use Schemastud\Frame\Tests\Fixtures\SampleCreateResultData;
 use Schemastud\Frame\Tests\Fixtures\SampleModel;
 use Schemastud\Frame\Tests\Fixtures\SampleResourceData;
 
@@ -133,9 +134,24 @@ class ManifestTest extends TestCase
         // the PHP class — and carries no `model` at all (ADR-0002). The registry object one test up
         // still holds both as class-strings: they are server-side inputs, not wire fields.
         $response->assertJsonPath('resources.0.data', 'Schemastud.Frame.Tests.Fixtures.SampleResourceData');
+        $response->assertJsonPath('resources.0.createResultData', null);
         $response->assertJsonMissingPath('resources.0.model');
         $this->assertStringNotContainsString(SampleModel::class, $response->getContent());
         $this->assertStringNotContainsString(SampleResourceData::class, $response->getContent());
+    }
+
+    public function test_a_create_result_identity_is_distinct_from_the_read_projection(): void
+    {
+        $definition = $this->sampleDefinition()->withOverrides(
+            createResultData: SampleCreateResultData::class,
+        );
+        $this->app->instance(ResourceRegistry::class, (new InMemoryResourceRegistry)->register($definition));
+
+        $this->getJson('/frame/manifest')->assertOk()
+            ->assertJsonPath('resources.0.data', 'Schemastud.Frame.Tests.Fixtures.SampleResourceData')
+            ->assertJsonPath('resources.0.createResultData', 'Schemastud.Frame.Tests.Fixtures.SampleCreateResultData');
+        $this->assertSame(SampleCreateResultData::class, $definition->resolvedCreateResultData());
+        $this->assertSame(SampleResourceData::class, $this->sampleDefinition()->resolvedCreateResultData());
     }
 
     public function test_definitions_register_as_flat_siblings(): void

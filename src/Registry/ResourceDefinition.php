@@ -51,6 +51,7 @@ class ResourceDefinition extends Data
      * @param  bool  $showable  whether the generic handler serves a per-record detail (`records/{id}`, show), independent of $editable — so a READ-ONLY resource (no create/edit/delete) can still expose a detail view under a read gate, and an editable resource always shows. Defaults true (readable ⇒ showable): every existing resource already served show under its edit gate and keeps doing so, while a read-only resource — previously list-only because show shared the edit gate — now serves detail. A producer projects it explicitly to false to CLOSE the detail view on an otherwise readable resource.
      * @param  class-string|null  $query  data-filters query class (optional filter schema)
      * @param  class-string|null  $editData  rare escape-hatch edit DTO
+     * @param  class-string<Data>|null  $createResultData  the Frame creation result; null uses the read projection. A custom handler may return a declared result such as a record plus a reveal-once receipt.
      * @param  string|null  $policy  ability/policy key the injected can() resolves against
      * @param  'enriched'|'bare'  $form  per-resource default form mode
      * @param  'single'|'subnav'|'master-detail'|null  $layout  inner-layout grammar emitted on the ContextManifest (null = the socket's SingleColumn fallback)
@@ -83,7 +84,15 @@ class ResourceDefinition extends Data
         /** @var class-string<\Schemastud\Frame\Contracts\ResourceSummaryProvider>|null */
         #[Hidden, HiddenFromTypeScript, Keyword(Keywords::Hidden)]
         public ?string $summaryProvider = null,
+        #[WithTransformer(GeneratedTypeName::class)]
+        public ?string $createResultData = null,
     ) {}
+
+    /** @return class-string<Data> */
+    public function resolvedCreateResultData(): string
+    {
+        return $this->createResultData ?? $this->data;
+    }
 
     /**
      * The RESOLVED singular noun emitted onto this resource's {@see ContextManifest} — what a
@@ -159,6 +168,7 @@ class ResourceDefinition extends Data
      * @param  'frame'|'host'|null  $createAffordance
      * @param  class-string|null  $filterProvider
      * @param  class-string|null  $summaryProvider
+     * @param  class-string<Data>|null  $createResultData
      */
     public function withOverrides(
         ?string $key = null,
@@ -184,6 +194,7 @@ class ResourceDefinition extends Data
         ?string $section = null,
         ?int $navOrder = null,
         ?string $routeName = null,
+        ?string $createResultData = null,
     ): static {
         return new static(
             key: $key ?? $this->key,
@@ -210,6 +221,7 @@ class ResourceDefinition extends Data
             singularLabel: $singularLabel ?? $this->singularLabel,
             filterProvider: $filterProvider ?? $this->filterProvider,
             summaryProvider: $summaryProvider ?? $this->summaryProvider,
+            createResultData: $createResultData ?? $this->createResultData,
         );
     }
 }

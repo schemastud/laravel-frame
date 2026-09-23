@@ -2,13 +2,18 @@
 
 namespace Schemastud\Frame\Tests;
 
+use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Foundation\Auth\User;
+use Illuminate\Support\Facades\Route;
 use Mockery;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Schemastud\Frame\Authorization\ResourceAuthorizer;
 use Schemastud\Frame\Contracts\FrameResourceHandler;
 use Schemastud\Frame\Contracts\FrameResourceHandlerResolver;
 use Schemastud\Frame\Contracts\ResourceAccessGate;
+use Schemastud\Frame\Contracts\ResourceContextContributor;
 use Schemastud\Frame\Contracts\ResourceRegistry;
+use Schemastud\Frame\Http\Controllers\FrameManifestController;
 use Schemastud\Frame\Registry\InMemoryResourceRegistry;
 use Schemastud\Frame\Registry\NavMetadata;
 use Schemastud\Frame\Registry\ResourceDefinition;
@@ -118,6 +123,83 @@ class ResourceAccessGateTest extends TestCase
     public function test_a_refused_resource_is_forbidden_on_every_socket_verb(string $method, string $url): void
     {
         $this->actingAs($this->actor())->{$method}($url)->assertForbidden();
+    }
+
+    public function test_manifest_omits_denied_resources_before_projecting_their_contexts(): void
+    {
+        $contributor = new class implements ResourceContextContributor
+        {
+            /** @var list<string> */
+            public array $projected = [];
+
+            public function nodesFor(string $key): array
+            {
+                $this->projected[] = $key;
+
+                return [];
+            }
+        };
+        $this->app->instance(ResourceContextContributor::class, $contributor);
+        $authorizer = new class($this->app->make(Gate::class), $this->app->make(ResourceAccessGate::class)) extends ResourceAuthorizer
+        {
+            /** @var list<string> */
+            public array $assessed = [];
+
+            public function capabilities(ResourceDefinition $definition): array
+            {
+                $this->assessed[] = $definition->key;
+
+                return parent::capabilities($definition);
+            }
+        };
+        $this->app->instance(ResourceAuthorizer::class, $authorizer);
+
+        $response = $this->actingAs($this->actor())->getJson('/frame/manifest')->assertOk();
+
+        $this->assertSame(['open'], array_column($response->json('resources'), 'key'));
+        $this->assertSame(['open'], array_keys($response->json('contexts')));
+        $response->assertJsonPath('contexts.open.singularLabel', 'Open');
+        $this->assertSame(['open'], $contributor->projected);
+        $this->assertSame(['open'], $authorizer->assessed);
+        $this->assertTrue($this->app->make(ResourceRegistry::class)->has('closed'));
+    }
+
+    public function test_manifest_access_is_evaluated_for_each_actor_and_mounted_context(): void
+    {
+        Route::get('/personal/manifest', FrameManifestController::class)->defaults('realm', 'personal');
+        Route::get('/staff/manifest', FrameManifestController::class)->defaults('realm', 'staff');
+        $this->app->instance(ResourceAccessGate::class, new class implements ResourceAccessGate
+        {
+            public function allowsResource(Definition $definition): bool
+            {
+                $actor = request()->user()?->getAuthIdentifier();
+                $realm = request()->route('realm');
+
+                return ($actor === 1 && $realm === 'personal' && $definition->key === 'open')
+                    || ($actor === 2 && $realm === 'staff' && $definition->key === 'closed');
+            }
+        });
+
+        $this->getJson('/personal/manifest')->assertOk()
+            ->assertExactJson(['resources' => [], 'contexts' => []]);
+
+        $first = new User;
+        $first->forceFill(['id' => 1]);
+        $this->actingAs($first);
+        $personal = $this->getJson('/personal/manifest')->assertOk();
+        $this->assertSame(['open'], array_column($personal->json('resources'), 'key'));
+        $this->assertSame(['open'], array_keys($personal->json('contexts')));
+        $this->getJson('/staff/manifest')->assertOk()
+            ->assertExactJson(['resources' => [], 'contexts' => []]);
+
+        $second = new User;
+        $second->forceFill(['id' => 2]);
+        $this->actingAs($second);
+        $staff = $this->getJson('/staff/manifest')->assertOk();
+        $this->assertSame(['closed'], array_column($staff->json('resources'), 'key'));
+        $this->assertSame(['closed'], array_keys($staff->json('contexts')));
+        $this->getJson('/personal/manifest')->assertOk()
+            ->assertExactJson(['resources' => [], 'contexts' => []]);
     }
 
     /** …and a permitted resource still reaches its handler, or the gate is just a wall. */

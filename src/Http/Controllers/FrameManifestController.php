@@ -5,6 +5,7 @@ namespace Schemastud\Frame\Http\Controllers;
 use Illuminate\Http\Request;
 use Schemastud\Frame\Authorization\ResourceAuthorizer;
 use Schemastud\Frame\Contracts\FrameNavContributor;
+use Schemastud\Frame\Contracts\ResourceAccessGate;
 use Schemastud\Frame\Contracts\ResourceRegistry;
 use Schemastud\Frame\Registry\ContextManifest;
 use Schemastud\Frame\Registry\NavManifest;
@@ -12,10 +13,10 @@ use Schemastud\Frame\Registry\NavManifest;
 /**
  * GET /frame/manifest -> { resources: ResourceDefinition[], contexts: {key => block} }
  * (+ { nav, routeContext } where a {@see FrameNavContributor} is bound).
- * Resolves the whole editor wiring for every registered resource; the frontend type
- * IS this projection (generate-once parity). Middleware/gating is the host's — the
- * route applies config('frame.middleware') so a host can put the surface behind its
- * own staff gate (numero: can:bypass-marquee).
+ * Resolves editor wiring for resources the current actor may access; the frontend type
+ * IS this projection (generate-once parity). The route applies config('frame.middleware'),
+ * and the producer's ResourceAccessGate narrows the resource catalog before contexts
+ * or capabilities are evaluated.
  *
  * `contexts` is a top-level map keyed by resource key (byNode pointers are
  * resource-local). Additive: the `resources` shape is unchanged — the JS
@@ -41,10 +42,17 @@ class FrameManifestController
         ContextManifest $manifest,
         NavManifest $nav,
         ResourceAuthorizer $authorizer,
+        ResourceAccessGate $access,
     ): array {
+        $resources = [];
         $contexts = [];
 
         foreach ($registry->all() as $definition) {
+            if (! $access->allowsResource($definition)) {
+                continue;
+            }
+
+            $resources[] = $definition;
             $contexts[$definition->key] = $manifest->forResource(
                 $definition->data,
                 $definition->layout,
@@ -60,7 +68,7 @@ class FrameManifestController
         }
 
         return [
-            'resources' => $registry->all(),
+            'resources' => $resources,
             'contexts' => $contexts,
             // Spreads to NOTHING when no contributor is bound, which is every pure-frame host.
             ...$nav->forRealm(NavManifest::realmFor($request)),

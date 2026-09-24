@@ -29,14 +29,20 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * The one frontend overlay not carried here is `columns` (host-supplied FrameColumn[],
  * merged frontend-side — columns are not backend-derivable until x-column graduates).
  *
- * Two of the constructor's fields are SERVER-SIDE INPUTS that the wire does not carry as declared
- * (ADR-0002): `$model` is hidden from both the JSON and the generated TS type — frame's own
- * {@see \Schemastud\Frame\Authorization\ResourceAuthorizer} resolves the write-gate policy subject
- * from it, and the {@see \Schemastud\Frame\Contracts\FrameResourceHandler} plug seam may read it, but
- * a browser has no use for an Eloquent class name and the manifest must not contradict "a resource is
- * backed, not modelled" (beam ADR-0212) on the wire. `$data` stays a class-string in PHP and is projected
- * through {@see GeneratedTypeName} on output, so the JSON says `Vendor.Package.Data.RowData` — the name
- * `typescript:transform` emits — never `Vendor\Package\Data\RowData`.
+ * **The wire carries no PHP class-string** (ADR-0002, ADR-0004). Every constructor field that holds one is
+ * either a SERVER-SIDE INPUT or a Data class projected to its generated type name:
+ *
+ *  - Server-side inputs — `$model`, `$query`, `$policy`, `$filterProvider`, `$summaryProvider` — carry
+ *    `#[Hidden]` (laravel-data: dropped from `toArray()`/JSON), typescript-transformer's `#[Hidden]` (dropped
+ *    from the emitted type) and `Keyword(Keywords::Hidden)` (dropped from the generated response schema).
+ *    They stay public properties because the server reads them: {@see \Schemastud\Frame\Authorization\ResourceAuthorizer}
+ *    resolves the write-gate subject from `$model`, the write and read gates resolve `$policy`, and the
+ *    declared filter capability resolves `$query`. A browser has no use for an Eloquent class, a query
+ *    builder class or a gate name, and the client's own authority is the injected `can()` plus the
+ *    per-actor `can` on the {@see ContextManifest}.
+ *  - Data classes — `$data`, `$editData`, `$createResultData` — stay class-strings in PHP and are projected
+ *    through {@see GeneratedTypeName} on output, so the JSON says `Vendor.Package.Data.RowData` — the name
+ *    `typescript:transform` emits — never `Vendor\Package\Data\RowData`.
  */
 #[TypeScript]
 class ResourceDefinition extends Data
@@ -49,10 +55,10 @@ class ResourceDefinition extends Data
      * @param  bool  $deletable  whether the host may emit a delete affordance and the generic handler honours a Frame destroy (independent of $creatable — a resource may be delete-only, e.g. a list you may prune but not create/edit). Defaults true so every existing resource's delete follows its create gate; a producer projects it explicitly to open destroy on an otherwise not-creatable resource.
      * @param  bool  $editable  whether the host may emit an edit affordance and the generic handler honours a Frame update (independent of $creatable — a resource may be create-and-delete-only, never edited in place, e.g. an invitation: sent + revoked but not edited). Defaults true so every existing resource's edit follows its create gate; a producer projects it explicitly to CLOSE in-place edit on an otherwise creatable resource.
      * @param  bool  $showable  whether the generic handler serves a per-record detail (`records/{id}`, show), independent of $editable — so a READ-ONLY resource (no create/edit/delete) can still expose a detail view under a read gate, and an editable resource always shows. Defaults true (readable ⇒ showable): every existing resource already served show under its edit gate and keeps doing so, while a read-only resource — previously list-only because show shared the edit gate — now serves detail. A producer projects it explicitly to false to CLOSE the detail view on an otherwise readable resource.
-     * @param  class-string|null  $query  data-filters query class (optional filter schema)
-     * @param  class-string|null  $editData  rare escape-hatch edit DTO
+     * @param  class-string|null  $query  data-filters query class (optional filter schema). Server-side only: never on the wire, never in the TS type (ADR-0004).
+     * @param  class-string|null  $editData  rare escape-hatch edit DTO. Class-string in PHP (the schema endpoint reflects `editData ?? data`); on the wire, the generated type's dot-form name (ADR-0004).
      * @param  class-string<Data>|null  $createResultData  the Frame creation result; null uses the read projection. A custom handler may return a declared result such as a record plus a reveal-once receipt.
-     * @param  string|null  $policy  ability/policy key the injected can() resolves against
+     * @param  string|null  $policy  ability/policy key the server-side gates resolve against — a Gate ability or a policy class-string. Server-side only: never on the wire, never in the TS type (ADR-0004).
      * @param  'enriched'|'bare'  $form  per-resource default form mode
      * @param  'single'|'subnav'|'master-detail'|null  $layout  inner-layout grammar emitted on the ContextManifest (null = the socket's SingleColumn fallback)
      * @param  string  $singularLabel  the resource's display SINGULAR — the noun a create affordance says ("New scaffold pack"). Empty (the default) ⇒ inflected from `$nav->label` (or the key). It exists because the inflector MANGLES mass/irregular nouns (`media` → "Medium"), which is the same reason the producer's own declaration carries the slot; declaring it here is how that declared word reaches a shell instead of dying in the docs generator. Display-only: it carries no capability and gates nothing.
@@ -62,13 +68,16 @@ class ResourceDefinition extends Data
      */
     public function __construct(
         public string $key,
-        #[Hidden, HiddenFromTypeScript]
+        #[Hidden, HiddenFromTypeScript, Keyword(Keywords::Hidden)]
         public ?string $model,
         #[WithTransformer(GeneratedTypeName::class)]
         public string $data,
         public bool $creatable,
+        #[Hidden, HiddenFromTypeScript, Keyword(Keywords::Hidden)]
         public ?string $query,
+        #[WithTransformer(GeneratedTypeName::class)]
         public ?string $editData,
+        #[Hidden, HiddenFromTypeScript, Keyword(Keywords::Hidden)]
         public ?string $policy,
         public string $form,
         public NavMetadata $nav,

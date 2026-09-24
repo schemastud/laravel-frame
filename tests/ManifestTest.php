@@ -154,6 +154,51 @@ class ManifestTest extends TestCase
         $this->assertSame(SampleResourceData::class, $this->sampleDefinition()->resolvedCreateResultData());
     }
 
+    /**
+     * ADR-0004: with EVERY class-bearing slot filled, the entry still ships no PHP class-string. The
+     * Data-class slots (`data`, `editData`, `createResultData`) name their generated types in dot form;
+     * the server-side inputs (`model`, `query`, `policy`) are absent from the wire while the registry object
+     * keeps them for the gates and the filter capability.
+     */
+    public function test_no_class_bearing_slot_ships_a_php_class_string(): void
+    {
+        $definition = $this->sampleDefinition()->withOverrides(
+            query: 'Schemastud\\Frame\\Tests\\Fixtures\\SampleQuery',
+            editData: SampleCreateResultData::class,
+            policy: 'Schemastud\\Frame\\Tests\\Fixtures\\SamplePolicy',
+            createResultData: SampleCreateResultData::class,
+        );
+        $this->app->instance(ResourceRegistry::class, (new InMemoryResourceRegistry)->register($definition));
+
+        $response = $this->getJson('/frame/manifest')->assertOk()
+            ->assertJsonPath('resources.0.data', 'Schemastud.Frame.Tests.Fixtures.SampleResourceData')
+            ->assertJsonPath('resources.0.editData', 'Schemastud.Frame.Tests.Fixtures.SampleCreateResultData')
+            ->assertJsonPath('resources.0.createResultData', 'Schemastud.Frame.Tests.Fixtures.SampleCreateResultData')
+            ->assertJsonMissingPath('resources.0.model')
+            ->assertJsonMissingPath('resources.0.query')
+            ->assertJsonMissingPath('resources.0.policy');
+
+        // No backslash anywhere in the entry — the whole-payload form of the assertion, so a slot added
+        // later without a transformer or a hide fails here rather than in a browser.
+        $this->assertStringNotContainsString('\\\\', json_encode($response->json('resources.0')));
+
+        // Server-side, every slot is still the declared class-string.
+        $this->assertSame('Schemastud\\Frame\\Tests\\Fixtures\\SampleQuery', $definition->query);
+        $this->assertSame('Schemastud\\Frame\\Tests\\Fixtures\\SamplePolicy', $definition->policy);
+        $this->assertSame(SampleCreateResultData::class, $definition->editData);
+    }
+
+    public function test_an_ability_policy_is_not_on_the_wire_either(): void
+    {
+        // `policy` is hidden as a SLOT, not filtered by value: a Gate ability (`sample.manage`) is as much a
+        // server-side gate input as a policy class, and the client's authority is the injected `can()`.
+        $definition = $this->sampleDefinition()->withOverrides(policy: 'sample.manage');
+        $this->app->instance(ResourceRegistry::class, (new InMemoryResourceRegistry)->register($definition));
+
+        $this->getJson('/frame/manifest')->assertOk()->assertJsonMissingPath('resources.0.policy');
+        $this->assertSame('sample.manage', $definition->policy);
+    }
+
     public function test_definitions_register_as_flat_siblings(): void
     {
         $registry = $this->app->make(ResourceRegistry::class);

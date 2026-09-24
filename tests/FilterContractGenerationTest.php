@@ -70,6 +70,14 @@ class FilterContractGenerationTest extends TestCase
         $this->assertNotContains('filterProvider', $schema['required']);
         $this->assertArrayNotHasKey('summaryProvider', $schema['properties']);
         $this->assertNotContains('summaryProvider', $schema['required']);
+
+        // ADR-0004: the server-side inputs are absent from the response schema as well as the wire. Before
+        // it, `model` was hidden from the JSON but still advertised here as a REQUIRED property.
+        foreach (['model', 'query', 'policy'] as $serverSide) {
+            $this->assertArrayNotHasKey($serverSide, $schema['properties'], $serverSide);
+            $this->assertNotContains($serverSide, $schema['required'], $serverSide);
+        }
+        $this->assertArrayHasKey('editData', $schema['properties']);
     }
 
     public function test_the_booted_summary_route_generates_a_typed_openapi_response(): void
@@ -126,6 +134,10 @@ class FilterContractGenerationTest extends TestCase
             $this->assertStringContainsString('key: string', $definition[1]);
             $this->assertStringNotContainsString('filterProvider', $definition[1]);
             $this->assertStringNotContainsString('summaryProvider', $definition[1]);
+            $this->assertStringNotContainsString('model:', $definition[1]);
+            $this->assertStringNotContainsString('query:', $definition[1]);
+            $this->assertStringNotContainsString('policy:', $definition[1]);
+            $this->assertStringContainsString('editData: string | null', $definition[1]);
             $this->assertStringContainsString('figures: Schemastud.Frame.Data.SummaryFigureData[]', $output);
             $this->assertStringContainsString('overview: Schemastud.Frame.Data.OverviewData | null', $output);
             $this->assertSame(1, preg_match('/export type OverviewData = \{(.*?)\};/s', $output, $overview));

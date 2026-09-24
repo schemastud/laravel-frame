@@ -66,13 +66,11 @@ docblock states; the hidden/transformer pair keeps one class and changes only it
   consumer that compared `entry.data` to a PHP class-string would break; the two assertions that did
   (`laravel-frame tests/ManifestTest.php`, the flagship's `FrameReviewQueueTest`) were flipped in the
   same change.
-- **The class-string leak ADR-0001 named narrows again but is still not closed.** `editData`, `query`
-  and `policy` still ship as declared. `editData` is the same kind as `data` and the same one-attribute
-  fix applies; it is deliberately **not** done here because the ticket that decided this scoped it to
-  `model`/`data`, and its single measured reader
-  (`splicewire-app/ui/src/_prototype/admin-redesign/ar02-…tsx:250`) splits the value on a backslash —
-  a prototype that would need the same flip. Nominated, not decided. `policy` is an ability key, not a
-  class; `query` is ADR-0001's named non-finding and stays there.
+- **The class-string leak ADR-0001 named is closed by ADR-0004.** This ticket was scoped to
+  `model`/`data`. ADR-0004 gives `editData` the same transformer and hides `query` and `policy` as
+  server-side inputs. `policy` holds a policy class-string as well as a Gate ability (`users` declares
+  `UserPolicy::class`). The prototype reader cited here (`ar02-…tsx:250`) reads a local fixture, not
+  the manifest.
 - **A host that hand-projects the definition** (as `~/Herd/schemastud`'s `BeamController` does with
   `'model' => $def->model`) still can: the PHP field is intact. That such a projection ships a class
   name is the host's choice, outside this contract.

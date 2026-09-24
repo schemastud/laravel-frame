@@ -13,6 +13,11 @@ use Spatie\LaravelData\Transformers\Transformer;
  * already holds. It runs at transform time only: the property a producer reads server-side is still the
  * class-string, so `ContextManifest::forResource()` and the schema endpoint reflect the class as before.
  *
+ * It is applied to every Data-class slot on {@see ResourceDefinition} that reaches the wire — `data`,
+ * `editData` and `createResultData` (ADR-0002, ADR-0004) — so the manifest spells a class one way only.
+ * Class-string slots that are NOT Data classes (`model`, `query`, `policy`, the two providers) are not
+ * renamed: they are hidden from the wire outright, because a browser has nothing to resolve them against.
+ *
  * Why a type name and not a schema reference: the manifest describes a resource's LIST rows, and the one
  * schema frame serves per resource (`GET /frame/resources/{key}/schema`) is the EDIT shape
  * (`editData ?? data`) — a reference to it would name a different thing. The generated type name is

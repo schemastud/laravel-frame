@@ -2,13 +2,17 @@
 
 namespace Schemastud\Frame\Tests;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Auth\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use Mockery;
 use Schemastud\Frame\Contracts\FrameResourceHandler;
 use Schemastud\Frame\Contracts\FrameResourceHandlerResolver;
 use Schemastud\Frame\Contracts\ResourceRegistry;
+use Schemastud\Frame\Contracts\WriteSubjectResolver;
 use Schemastud\Frame\Registry\InMemoryResourceRegistry;
 use Schemastud\Frame\Registry\NavMetadata;
 use Schemastud\Frame\Registry\ResourceDefinition;
@@ -264,6 +268,85 @@ class ResourceWriteAuthorizationTest extends TestCase
         $this->deleteJson('frame/resources/sample/records/1')->assertForbidden();
     }
 
+    /**
+     * A policy-less write is still refused BY THE GATE, so the host's `Gate::before` superuser passes it
+     * and nobody else does. Root's plan create and conduit edit at `~/Herd/splicewire-app` (2026-09-24)
+     * were 403 because this arm returned `false` beside the Gate instead of asking it.
+     */
+    public function test_a_gate_before_superuser_may_write_a_policy_less_model_and_nobody_else_may(): void
+    {
+        $superuser = $this->actor();
+        Gate::before(fn ($user) => $user === $superuser ? true : null);
+        $handler = $this->expectHandlerReached();
+
+        $this->actingAs($superuser)->postJson('frame/resources/orphan', [])->assertOk();
+        $this->actingAs($superuser)->deleteJson('frame/resources/orphan/records/1')->assertNoContent();
+        $this->assertTrue($handler->reached);
+
+        $handler->reached = false;
+        $this->actingAs($this->actor())->postJson('frame/resources/orphan', [])->assertForbidden();
+        $this->assertFalse($handler->reached);
+
+        // A model-less resource has no subject for any callback to be about: still refused.
+        $this->actingAs($superuser)->postJson('frame/resources/union', [])->assertForbidden();
+    }
+
+    /**
+     * A lookup the database refuses reads as "no such record", not a 500. Postgres raises on a word
+     * against a uuid key: Root's `PUT …/circuit-runs/records/anything` was a 500 here before the handler
+     * could 405 it (splicewire-app 2026-09-24). The raise is contained in a savepoint, so the surrounding
+     * transaction keeps working. (sqlite raises on a missing table instead, the same QueryException.)
+     */
+    public function test_a_lookup_the_database_refuses_reads_as_no_record(): void
+    {
+        Gate::policy(SampleMissingTableModel::class, SamplePolicy::class);
+        $this->app->instance(ResourceRegistry::class, (new InMemoryResourceRegistry)
+            ->register($this->definition('missing', SampleMissingTableModel::class)));
+        SamplePolicy::$allows = ['update'];
+        $this->expectHandlerReached();
+
+        DB::beginTransaction();
+        $this->actingAs($this->actor())->putJson('frame/resources/missing/records/not-a-uuid', [])->assertOk();
+
+        $this->assertFalse(SamplePolicy::$asked[0]->exists);
+        $this->assertSame(1, SampleModel::query()->count(), 'the surrounding transaction was poisoned');
+        DB::rollBack();
+    }
+
+    /**
+     * With a bound {@see WriteSubjectResolver} the policy is asked about the record WITHIN the resource's
+     * scope; an id outside it resolves to nothing here, the policy sees the class-level probe, and the
+     * handler's scoped lookup owns the answer (a 404 at a real host) instead of this lookup's 403.
+     */
+    public function test_a_bound_write_subject_resolver_decides_what_the_policy_is_asked_about(): void
+    {
+        SamplePolicy::$allows = ['delete'];
+        $this->app->instance(WriteSubjectResolver::class, new class implements WriteSubjectResolver
+        {
+            public function resolve(ResourceDefinition $definition, string $id): ?Model
+            {
+                return null; // row 1 exists, but not within this caller's reach
+            }
+        });
+        $this->expectHandlerReached();
+
+        $this->actingAs($this->actor())->deleteJson('frame/resources/sample/records/1')->assertNoContent();
+
+        $this->assertCount(1, SamplePolicy::$asked);
+        $this->assertFalse(SamplePolicy::$asked[0]->exists, 'the out-of-scope row was resolved anyway');
+    }
+
+    /** Unbound, frame keeps its own unscoped lookup and asks about the persisted row. */
+    public function test_without_a_resolver_the_policy_is_asked_about_the_persisted_row(): void
+    {
+        SamplePolicy::$allows = ['delete'];
+        $this->expectHandlerReached();
+
+        $this->actingAs($this->actor())->deleteJson('frame/resources/sample/records/1')->assertNoContent();
+
+        $this->assertTrue(SamplePolicy::$asked[0]->exists);
+    }
+
     // ---- the read axis must not move -------------------------------------------------------
 
     /**
@@ -332,4 +415,14 @@ class ResourceWriteAuthorizationTest extends TestCase
         $this->assertTrue($response->json('contexts.sample.can.create'));
         $this->assertFalse($response->json('contexts.sample.can.delete'));
     }
+}
+
+/** A model whose table does not exist, so any lookup raises a QueryException. */
+class SampleMissingTableModel extends Model
+{
+    use HasUuids;
+
+    protected $table = 'sample_missing_models';
+
+    protected $guarded = [];
 }

@@ -23,9 +23,13 @@ class SamplePolicy
     /** @var list<string> */
     public static array $allows = [];
 
+    /** @var list<Model> the instances `update`/`delete` were asked about, in order */
+    public static array $asked = [];
+
     public static function reset(): void
     {
         self::$allows = [];
+        self::$asked = [];
     }
 
     public function create(Authenticatable $user): bool
@@ -35,11 +39,15 @@ class SamplePolicy
 
     public function update(Authenticatable $user, Model $instance): bool
     {
+        self::$asked[] = $instance;
+
         return in_array('update', self::$allows, true);
     }
 
     public function delete(Authenticatable $user, Model $instance): bool
     {
+        self::$asked[] = $instance;
+
         return in_array('delete', self::$allows, true);
     }
 }

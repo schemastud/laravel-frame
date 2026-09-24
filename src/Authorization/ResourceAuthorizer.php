@@ -5,7 +5,9 @@ namespace Schemastud\Frame\Authorization;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\QueryException;
 use Schemastud\Frame\Contracts\ResourceAccessGate;
+use Schemastud\Frame\Contracts\WriteSubjectResolver;
 use Schemastud\Frame\Registry\ResourceDefinition;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
@@ -95,6 +97,7 @@ class ResourceAuthorizer
     public function __construct(
         protected Gate $gate,
         protected ResourceAccessGate $access,
+        protected ?WriteSubjectResolver $subjects = null,
     ) {}
 
     /**
@@ -148,8 +151,9 @@ class ResourceAuthorizer
     /**
      * May the current actor perform `$ability` on this resource?
      *
-     * Every arm that cannot reach an affirmative policy answer returns FALSE — see the class
-     * docblock. A null actor falls through to the Gate, whose policy methods type their first
+     * Every arm that cannot reach an affirmative policy answer is refused — see the class docblock.
+     * A policy-less model is refused by the Gate itself, so only a host `Gate::before`/`after`
+     * callback (the superuser declaration) can grant it; a model-less resource returns FALSE. A null actor falls through to the Gate, whose policy methods type their first
      * argument as `Authenticatable` and therefore auto-deny; that is inherited deny-by-default
      * rather than a branch of our own, and it is the same mechanism
      * {@see \Splicewire\Beam\Write\GateWriteGate} relies on.
@@ -169,15 +173,24 @@ class ResourceAuthorizer
 
         $policy = $this->gate->getPolicyFor($modelClass);
 
-        // No policy, or a policy silent on this ability. Laravel would deny an ability nobody
-        // defined anyway; asking explicitly is what makes the READ side's opposite default
-        // (`resourceViewable()` skips and stays visible) a stated decision rather than a
-        // side effect of which of two code paths happened to run.
+        // No policy, or a policy silent on this ability: nothing grants the write, so it is refused.
+        // It is still refused BY THE GATE rather than beside it. Asked with no policy and no defined
+        // ability, Laravel's Gate answers only from the host's `Gate::before`/`Gate::after` callbacks —
+        // the superuser declaration (`Root` at the flagship) — and denies everyone else, so the
+        // fail-closed posture below is unchanged for every other actor. Returning `false` here instead
+        // made this the one question in the estate a declared superuser could not pass: measured
+        // 2026-09-24 at `~/Herd/splicewire-app`, Root's plan create and conduit edit (both policy-less
+        // models) answered 403 once the host adopted this socket, while every read the same Root made
+        // passed through its `Gate::before`.
+        //
+        // Asking explicitly is still what makes the READ side's opposite default (`resourceViewable()`
+        // skips and stays visible) a stated decision rather than a side effect of which of two code
+        // paths happened to run: the READ side admits; this side admits only what a callback grants.
         if ($policy === null || ! method_exists($policy, $ability)) {
-            return false;
+            return $this->gate->allows($ability, [$modelClass]);
         }
 
-        return $this->gate->allows($ability, $this->subject($modelClass, $ability, $id));
+        return $this->gate->allows($ability, $this->subject($modelClass, $ability, $id, $definition));
     }
 
     /**
@@ -211,9 +224,8 @@ class ResourceAuthorizer
             return ['create' => false, 'update' => false, 'delete' => false];
         }
 
-        $policy = $this->gate->getPolicyFor($record);
-        $allows = fn (string $ability) => $policy !== null && method_exists($policy, $ability)
-            && $this->advisory(fn () => $this->gate->allows($ability, $record));
+        // A policy-less ability is answered by the Gate's callbacks alone, as in {@see allows()}.
+        $allows = fn (string $ability) => $this->advisory(fn () => $this->gate->allows($ability, $record));
 
         return [
             'create' => $definition->creatable && $this->advisory(fn () => $this->allows($definition, 'create')),
@@ -257,14 +269,28 @@ class ResourceAuthorizer
      *
      * @param  class-string<Model>  $modelClass
      */
-    protected function subject(string $modelClass, string $ability, ?string $id): Model|string
+    protected function subject(string $modelClass, string $ability, ?string $id, ?ResourceDefinition $definition = null): Model|string
     {
         if ($ability === 'create') {
             return $modelClass;
         }
 
         if ($id !== null) {
-            $found = $modelClass::query()->find($id);
+            // Within the resource's row scope when its producer bound one ({@see WriteSubjectResolver}):
+            // an id outside the caller's reach resolves to nothing, exactly as the handler's scoped
+            // lookup will, so the handler — not this lookup — answers whether it exists.
+            // An id the key column cannot hold (a word against a uuid key) names no record. Postgres raises
+            // on it, which was a 500 before the handler could answer — measured 2026-09-24 at
+            // `~/Herd/splicewire-app`, Root's `PUT …/circuit-runs/records/anything` (a verb the handler
+            // refuses with 405). The lookup runs in its own (nested → savepoint) transaction so a raised
+            // lookup cannot poison a surrounding one, and a raise reads as "no such record".
+            try {
+                $found = (new $modelClass)->getConnection()->transaction(fn () => $this->subjects !== null && $definition !== null
+                    ? $this->subjects->resolve($definition, $id)
+                    : $modelClass::query()->find($id));
+            } catch (QueryException) {
+                $found = null;
+            }
 
             if ($found !== null) {
                 return $found;

@@ -22,6 +22,7 @@ Route::middleware(config('frame.middleware', ['web']))
         if (config('frame.register_resource_routes', true)) {
             Route::get('resources/{resource}', [FrameResourceController::class, 'index'])->name('frame.resources.index');
             Route::get('resources/{resource}/schema', [FrameResourceController::class, 'schema'])->name('frame.resources.schema');
+            Route::get('resources/{resource}/actions/{action}/schema', [FrameResourceController::class, 'actionSchema'])->name('frame.resources.actions.schema');
             Route::get('resources/{resource}/records/{id}', [FrameResourceController::class, 'show'])->name('frame.resources.show');
             Route::post('resources/{resource}', [FrameResourceController::class, 'store'])->name('frame.resources.store');
             Route::put('resources/{resource}/records/{id}', [FrameResourceController::class, 'update'])->name('frame.resources.update');

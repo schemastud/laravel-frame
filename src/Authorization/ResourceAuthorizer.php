@@ -7,6 +7,7 @@ use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\QueryException;
 use Schemastud\Frame\Contracts\ResourceAccessGate;
+use Schemastud\Frame\Contracts\ResourceActionAuthorizer;
 use Schemastud\Frame\Contracts\WriteSubjectResolver;
 use Schemastud\Frame\Registry\ResourceDefinition;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -98,6 +99,7 @@ class ResourceAuthorizer
         protected Gate $gate,
         protected ResourceAccessGate $access,
         protected ?WriteSubjectResolver $subjects = null,
+        protected ?ResourceActionAuthorizer $actions = null,
     ) {}
 
     /**
@@ -232,6 +234,33 @@ class ResourceAuthorizer
             'update' => $definition->editable && $allows('update'),
             'delete' => $definition->deletable && $allows('delete'),
         ];
+    }
+
+    /**
+     * The per-actor ACTION map emitted onto a resource's {@see \Schemastud\Frame\Registry\ContextManifest}
+     * block beside {@see capabilities()} — `{actionKey: bool}`, one entry per declared action (ADR-0005).
+     *
+     * Asked of the producer's {@see ResourceActionAuthorizer}, never decided here: frame knows nothing of
+     * the rule behind an action's URL. The answer is advisory in exactly the sense `capabilities()` is — it
+     * decides whether a button is drawn, and the URL's own mount refuses what this over-allows. A
+     * `record` action is asked at class level (no record), so a row-dependent rule answers its most
+     * generous class-level approximation; the mount still refuses per row.
+     *
+     * Empty for a resource with no actions, which is what keeps every pre-existing manifest block
+     * byte-identical.
+     *
+     * @return array<string, bool>
+     */
+    public function actionCapabilities(ResourceDefinition $definition, ?Model $record = null): array
+    {
+        $port = $this->actions ?? new DenyingResourceActionAuthorizer;
+        $can = [];
+
+        foreach ($definition->actions as $action) {
+            $can[$action->key] = $this->advisory(fn () => $port->allows($definition, $action, $record));
+        }
+
+        return $can;
     }
 
     /** Policies may conceal a foreign row with 404. An advisory probe must not abort its readable list. */

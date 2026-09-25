@@ -63,7 +63,13 @@ class FrameManifestController
                 // before — a host caching it must key that cache on the viewer, or it will serve one
                 // actor's affordances to another. The resources/contexts payload is otherwise
                 // unchanged, and an anonymous request resolves every capability false.
-                $authorizer->capabilities($definition),
+                [
+                    ...$authorizer->capabilities($definition),
+                    // The per-actor half of the resource's declared ACTIONS (ADR-0005), asked of the
+                    // producer's port. Absent for a resource that declares none.
+                    ...($definition->actions === [] ? [] : ['actions' => $authorizer->actionCapabilities($definition)]),
+                ],
+                $definition->actions,
             );
         }
 

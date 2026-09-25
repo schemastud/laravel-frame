@@ -6,6 +6,7 @@ use Illuminate\Support\Str;
 use Schemastud\DataSchemas\Attributes\Keyword;
 use Schemastud\DataSchemas\Keywords;
 use Schemastud\Frame\Http\Controllers\FrameManifestController;
+use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Attributes\Hidden;
 use Spatie\LaravelData\Attributes\WithTransformer;
 use Spatie\LaravelData\Data;
@@ -40,7 +41,8 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  *    declared filter capability resolves `$query`. A browser has no use for an Eloquent class, a query
  *    builder class or a gate name, and the client's own authority is the injected `can()` plus the
  *    per-actor `can` on the {@see ContextManifest}.
- *  - Data classes — `$data`, `$editData`, `$createResultData` — stay class-strings in PHP and are projected
+ *  - Data classes — `$data`, `$editData`, `$createResultData`, and each of `$actions`' `input`
+ *    ({@see ResourceActionDefinition}, ADR-0005) — stay class-strings in PHP and are projected
  *    through {@see GeneratedTypeName} on output, so the JSON says `Vendor.Package.Data.RowData` — the name
  *    `typescript:transform` emits — never `Vendor\Package\Data\RowData`.
  */
@@ -64,6 +66,7 @@ class ResourceDefinition extends Data
      * @param  string  $singularLabel  the resource's display SINGULAR — the noun a create affordance says ("New scaffold pack"). Empty (the default) ⇒ inflected from `$nav->label` (or the key). It exists because the inflector MANGLES mass/irregular nouns (`media` → "Medium"), which is the same reason the producer's own declaration carries the slot; declaring it here is how that declared word reaches a shell instead of dying in the docs generator. Display-only: it carries no capability and gates nothing.
      * @param  'frame'|'host'  $createAffordance  WHERE this resource's create affordance lives, and the only new slot here: `'frame'` (the default, and today's behaviour) means frame's own list Toolbar emits the "New …" button; `'host'` means the host's page chrome owns it — a title-row button, a reveal-once dialog — so frame emits none. It is a PRESENTATION slot, deliberately not a capability one: $creatable already answers "may this be created at all", and a resource can be perfectly creatable while its affordance lives somewhere frame cannot see. The two are combined into one resolved value on the {@see ContextManifest}, never on the client, so `creatable` keeps exactly one spelling.
      * @param  class-string<\Schemastud\Frame\Contracts\ResourceFilterProvider>|null  $filterProvider  the resource's declared filter capability. Server-side only: never on the wire, never in the TS type; a producer names it and frame container-makes it after the access gate.
+     * @param  list<ResourceActionDefinition>  $actions  the ACTIONS this resource offers beyond CRUD — a button, an optional form from a declared input Data class, and a declared result presentation (ADR-0005). Empty (the default) ⇒ none, which is every resource declared before the slot existed. Frame reads it (the manifest hands it to the shell's {@see ContextManifest} block, the action schema endpoint reflects each `$input`), so it passes ADR-0001's test directly. It names no producer: a producer projects its own operations onto it.
      * @param  class-string<\Schemastud\Frame\Contracts\ResourceSummaryProvider>|null  $summaryProvider  the resource's declared summary capability (`resources/{resource}/summary`), mirroring `$filterProvider` slot for slot: hidden from the wire and the TS type, preserved by {@see withOverrides()}, resolved only after the access gate. Null ⇒ the route answers 404.
      */
     public function __construct(
@@ -95,7 +98,22 @@ class ResourceDefinition extends Data
         public ?string $summaryProvider = null,
         #[WithTransformer(GeneratedTypeName::class)]
         public ?string $createResultData = null,
+        /** @var list<ResourceActionDefinition> */
+        #[DataCollectionOf(ResourceActionDefinition::class)]
+        public array $actions = [],
     ) {}
+
+    /** The declared action under `$key`, or null when this resource offers none by that key. */
+    public function action(string $key): ?ResourceActionDefinition
+    {
+        foreach ($this->actions as $action) {
+            if ($action->key === $key) {
+                return $action;
+            }
+        }
+
+        return null;
+    }
 
     /** @return class-string<Data> */
     public function resolvedCreateResultData(): string
@@ -178,6 +196,7 @@ class ResourceDefinition extends Data
      * @param  class-string|null  $filterProvider
      * @param  class-string|null  $summaryProvider
      * @param  class-string<Data>|null  $createResultData
+     * @param  list<ResourceActionDefinition>|null  $actions  replaces the whole list; `[]` clears it
      */
     public function withOverrides(
         ?string $key = null,
@@ -204,6 +223,7 @@ class ResourceDefinition extends Data
         ?int $navOrder = null,
         ?string $routeName = null,
         ?string $createResultData = null,
+        ?array $actions = null,
     ): static {
         return new static(
             key: $key ?? $this->key,
@@ -231,6 +251,7 @@ class ResourceDefinition extends Data
             filterProvider: $filterProvider ?? $this->filterProvider,
             summaryProvider: $summaryProvider ?? $this->summaryProvider,
             createResultData: $createResultData ?? $this->createResultData,
+            actions: $actions ?? $this->actions,
         );
     }
 }

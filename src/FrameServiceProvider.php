@@ -2,8 +2,10 @@
 
 namespace Schemastud\Frame;
 
+use Schemastud\Frame\Authorization\DenyingResourceActionAuthorizer;
 use Schemastud\Frame\Authorization\OpenResourceAccessGate;
 use Schemastud\Frame\Contracts\ResourceAccessGate;
+use Schemastud\Frame\Contracts\ResourceActionAuthorizer;
 use Schemastud\Frame\Contracts\ResourceRegistry;
 use Schemastud\Frame\Registry\CompositeResourceRegistry;
 use Schemastud\Frame\Registry\InMemoryResourceRegistry;
@@ -81,6 +83,9 @@ class FrameServiceProvider extends PackageServiceProvider
     protected function registerResourceAccessGate(): void
     {
         $this->app->bind(ResourceAccessGate::class, OpenResourceAccessGate::class);
+        // The action port, bound to frame's deny-everything default on the same terms: a producer that
+        // projects actions (beam) rebinds it at its own `register()` with the rule its mounts enforce.
+        $this->app->bind(ResourceActionAuthorizer::class, DenyingResourceActionAuthorizer::class);
     }
 
     /**

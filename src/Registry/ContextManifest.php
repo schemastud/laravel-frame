@@ -46,9 +46,10 @@ class ContextManifest
      * @param  'frame'|'host'  $createAffordance  the RESOLVED create affordance, handed in from the resource's {@see ResourceDefinition::resolvedCreateAffordance()}. It rides this block rather than the definition for the same reason `$layout` does: a frame shell is handed its ContextManifest and never the definition, so a presentation fact the shell must read has to arrive here. Defaults to `'frame'` — today's behaviour — so every existing caller of this method emits an unchanged block.
      * @param  string  $singularLabel  the RESOLVED display singular, handed in from {@see ResourceDefinition::resolvedSingularLabel()}. It rides this block for the same reason `$layout` and `$createAffordance` do: a frame shell is handed its ContextManifest and never the definition, so a presentation fact the shell must read has to arrive here. Empty (the default) ⇒ the shell falls back to the resource KEY, i.e. today's behaviour, so every existing caller of this method emits an unchanged block.
      * @param  array{create?: bool, update?: bool, delete?: bool}  $can  the CURRENT ACTOR's class-level write capabilities, from {@see \Schemastud\Frame\Authorization\ResourceAuthorizer::capabilities()}. It rides this block for the same reason the three above do — the shell never sees the definition — and it is the axis the shell has never had. `createAffordance`/`creatable`/`deletable`/`editable` describe the RESOURCE ("may this be created at all", "whose chrome owns the button"); this describes the ACTOR, and the two are deliberately NOT collapsed: a resource can be perfectly `creatable` and un-creatable BY YOU. A shell renders a create affordance when `createAffordance === 'frame' && can.create` — two fields answering two different questions, not two spellings of one. **Empty (the default) ⇒ no actor axis was resolved and the shell falls back to the resource flags alone**, i.e. today's behaviour, so every existing caller of this method emits an unchanged block. That default is permissive by design: this map exists to stop offering buttons that cannot work, and the endpoint — not this — is what refuses the write ({@see \Schemastud\Frame\Http\Controllers\FrameResourceController}).
-     * @return array{byNode: array<string, array<string, mixed>>, inherits: array<string, list<string>>, known: list<string>, layout: 'single'|'subnav'|'master-detail'|null, createAffordance: 'frame'|'host', singularLabel: string, can: array{create?: bool, update?: bool, delete?: bool}}
+     * @param  list<ResourceActionDefinition>  $actions  the resource's declared ACTIONS, handed in from {@see ResourceDefinition::$actions} (ADR-0005). They ride this block for the reason `$layout` does — a shell is handed its ContextManifest and never the definition — and pair with `can.actions`, the per-actor half, which the caller puts in `$can`. Empty (the default) ⇒ no `actions` key is emitted, so every existing caller's block is byte-identical.
+     * @return array{byNode: array<string, array<string, mixed>>, inherits: array<string, list<string>>, known: list<string>, layout: 'single'|'subnav'|'master-detail'|null, createAffordance: 'frame'|'host', singularLabel: string, can: array{create?: bool, update?: bool, delete?: bool, actions?: array<string, bool>}, actions?: list<array<string, mixed>>}
      */
-    public function forResource(string $dataClass, ?string $layout = null, ?string $key = null, string $createAffordance = 'frame', string $singularLabel = '', array $can = []): array
+    public function forResource(string $dataClass, ?string $layout = null, ?string $key = null, string $createAffordance = 'frame', string $singularLabel = '', array $can = [], array $actions = []): array
     {
         $reflection = new ReflectionClass($dataClass);
         $projector = new WidgetContextProjector;
@@ -112,6 +113,16 @@ class ContextManifest
             // holding only `beam-ux-entry.view`. Resolved server-side against the same
             // ResourceAuthorizer the endpoint asks, so the button and its 403 cannot disagree.
             'can' => $can,
+            // WHAT this resource offers beyond CRUD (ADR-0005) — each action's button, form input and
+            // result presentation, serialized the way the manifest's `resources[]` entry carries it.
+            // Emitted only when there is something to say, so a resource without actions keeps the
+            // exact block it had. Whether THIS ACTOR may press each one is `can.actions`, above.
+            ...($actions === [] ? [] : [
+                'actions' => array_map(
+                    fn (ResourceActionDefinition $action): array => $action->toArray(),
+                    array_values($actions),
+                ),
+            ]),
         ];
     }
 }

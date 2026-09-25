@@ -191,6 +191,30 @@ class FrameResourceController
      * unknown key stay distinguishable; the 403 then lands before `$request->all()`, before
      * validation, and before any handler is resolved.
      */
+    /**
+     * The form contract of one declared ACTION (ADR-0005) — its `input` Data class, reflected through the
+     * host's configured generator chain in REQUEST mode exactly as {@see schema()} reflects `editData`.
+     *
+     * The wire carries the input's generated type NAME (ADR-0004), which a client cannot reflect; this is
+     * where the schema that name describes is fetched. It is gated by the same resource-access question as
+     * every other read here, and not by the per-actor action answer: seeing a form's fields grants nothing,
+     * and the action's own URL refuses the send. A confirm-only action (no input) has no form, and an
+     * unknown key is not an action of this resource — both answer 404.
+     */
+    public function actionSchema(Request $request, string $resource, string $action): array
+    {
+        $definition = $this->definition($resource);
+        $declared = $definition->action($action);
+
+        if ($declared === null || $declared->input === null) {
+            throw new NotFoundHttpException("The '{$resource}' frame resource declares no action '{$action}' with a form.");
+        }
+
+        return app(Generator::class)
+            ->forRequest()
+            ->generate(new ReflectionClass($declared->input));
+    }
+
     protected function definition(string $resource)
     {
         if (! $this->registry->has($resource)) {

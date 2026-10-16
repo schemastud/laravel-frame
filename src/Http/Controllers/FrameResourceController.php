@@ -9,7 +9,10 @@ use Rushing\LaravelDataSchemasScribe\Attributes\QueryFromData;
 use Rushing\LaravelDataSchemasScribe\Attributes\ResponseFromData;
 use Schemastud\DataSchemas\Generators\Generator;
 use Schemastud\Frame\Authorization\ResourceAuthorizer;
+use Schemastud\Frame\Contracts\ActorAwareFrameResourceHandler;
+use Schemastud\Frame\Contracts\FrameResourceHandler;
 use Schemastud\Frame\Contracts\FrameResourceHandlerResolver;
+use Schemastud\Frame\Contracts\ResourceAccessGate;
 use Schemastud\Frame\Contracts\ResourceRegistry;
 use Schemastud\Frame\Data\ResourcePageData;
 use Schemastud\Frame\Data\ResourceQueryData;
@@ -55,7 +58,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  *
  * {@see definition()} now asks {@see ResourceAuthorizer::authorizeAccess()} before returning, so
  * every CRUD verb here passes the reach question. FrameResourceFiltersController applies the same
- * question before invoking a resource filter provider. Frame does not answer that question: {@see \Schemastud\Frame\Contracts\ResourceAccessGate}
+ * question before invoking a resource filter provider. Frame does not answer that question: {@see ResourceAccessGate}
  * is the port, frame's shipped default permits, and the producer that owns realms binds the
  * refusing answer.
  */
@@ -67,13 +70,22 @@ class FrameResourceController
         protected ResourceAuthorizer $authorizer,
     ) {}
 
+    protected function handler(Request $request, string $resource): FrameResourceHandler
+    {
+        $handler = $this->resources->handlerFor($resource);
+
+        return $handler instanceof ActorAwareFrameResourceHandler
+            ? $handler->forActor($request->user(), $request->route()?->defaults['realm'] ?? null)
+            : $handler;
+    }
+
     #[QueryFromData(ResourceQueryData::class)]
     #[ResponseFromData(ResourcePageData::class)]
     public function index(Request $request, string $resource): array
     {
         $definition = $this->definition($resource);
         ResourceQueryData::validateAndCreate($request->query());
-        $result = $this->resources->handlerFor($resource)->index($definition, $request->query());
+        $result = $this->handler($request, $resource)->index($definition, $request->query());
 
         // A null continuation is still a cursor page. Never paginate either page form twice.
         if (array_key_exists('nextCursor', $result)) {
@@ -136,7 +148,7 @@ class FrameResourceController
     {
         $definition = $this->definition($resource);
 
-        return ['data' => $this->resources->handlerFor($resource)->show($definition, $id)];
+        return ['data' => $this->handler($request, $resource)->show($definition, $id)];
     }
 
     public function store(Request $request, string $resource): array
@@ -144,7 +156,7 @@ class FrameResourceController
         $definition = $this->definition($resource);
         $this->authorizer->authorize($definition, 'create');
 
-        return ['data' => $this->resources->handlerFor($resource)->store($definition, $request->all())];
+        return ['data' => $this->handler($request, $resource)->store($definition, $request->all())];
     }
 
     public function update(Request $request, string $resource, string $id): array
@@ -152,7 +164,7 @@ class FrameResourceController
         $definition = $this->definition($resource);
         $this->authorizer->authorize($definition, 'update', $id);
 
-        return ['data' => $this->resources->handlerFor($resource)->update($definition, $id, $request->all())];
+        return ['data' => $this->handler($request, $resource)->update($definition, $id, $request->all())];
     }
 
     /**
@@ -173,7 +185,7 @@ class FrameResourceController
         $definition = $this->definition($resource);
         $this->authorizer->authorize($definition, 'delete', $id);
 
-        $this->resources->handlerFor($resource)->destroy($definition, $id);
+        $this->handler($request, $resource)->destroy($definition, $id);
 
         return response()->noContent();
     }

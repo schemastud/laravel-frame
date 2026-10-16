@@ -2,10 +2,12 @@
 
 namespace Schemastud\Frame\Tests;
 
+use Illuminate\Http\Request;
 use Mockery;
 use Schemastud\DataSchemas\Generators\JsonSchemaGenerator;
 use Schemastud\Frame\Contracts\FrameResourceHandlerResolver;
 use Schemastud\Frame\Contracts\ResourceRegistry;
+use Schemastud\Frame\Contracts\ResourceSchemaResolver;
 use Schemastud\Frame\Registry\InMemoryResourceRegistry;
 use Schemastud\Frame\Registry\NavMetadata;
 use Schemastud\Frame\Registry\ResourceDefinition;
@@ -48,6 +50,23 @@ class ResourceSchemaEndpointTest extends TestCase
         // touches neither — it reads only the registry. Mocks with no expectations, deliberately:
         // if this endpoint ever starts calling a handler, these fail loudly rather than absorbing it.
         $this->app->instance(FrameResourceHandlerResolver::class, Mockery::mock(FrameResourceHandlerResolver::class));
+    }
+
+    public function test_address_dependent_schema_and_null_fallthrough(): void
+    {
+        $this->app->instance(ResourceSchemaResolver::class,
+            new class implements ResourceSchemaResolver
+            {
+                public function schema(ResourceDefinition $resource, Request $request): ?array
+                {
+                    return $resource->key === 'sample'
+                        ? ['type' => 'object', 'properties' => ['fields' => ['type' => 'object', 'title' => $request->query('collection')]]]
+                        : null;
+                }
+            });
+        $this->getJson('frame/resources/sample/schema?collection=articles')->assertOk()->assertJsonPath('properties.fields.title', 'articles');
+        $this->getJson('frame/resources/sample/schema?collection=people')->assertOk()->assertJsonPath('properties.fields.title', 'people');
+        $this->getJson('frame/resources/contact/schema')->assertOk()->assertJsonStructure(['properties' => ['email']]);
     }
 
     private function definition(string $key, string $data): ResourceDefinition

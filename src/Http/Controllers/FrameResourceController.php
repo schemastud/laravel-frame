@@ -14,6 +14,7 @@ use Schemastud\Frame\Contracts\FrameResourceHandler;
 use Schemastud\Frame\Contracts\FrameResourceHandlerResolver;
 use Schemastud\Frame\Contracts\ResourceAccessGate;
 use Schemastud\Frame\Contracts\ResourceRegistry;
+use Schemastud\Frame\Contracts\ResourceSchemaResolver;
 use Schemastud\Frame\Data\ResourcePageData;
 use Schemastud\Frame\Data\ResourceQueryData;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -137,6 +138,12 @@ class FrameResourceController
          * decision either way.
          */
         $definition = $this->definition($resource);
+        if (app()->bound(ResourceSchemaResolver::class)) {
+            $schema = app(ResourceSchemaResolver::class)->schema($definition, $request);
+            if ($schema !== null) {
+                return $schema;
+            }
+        }
         $editClass = $definition->editData ?? $definition->data;
 
         return app(Generator::class)

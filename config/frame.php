@@ -31,23 +31,14 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Per-realm resource presentation overrides (RDU-03)
+    | Per-realm resource presentation overrides — MOVED (A4-C5, 2026-10-18)
     |--------------------------------------------------------------------------
-    | A realm may PRESENT the same resource differently — a different label,
-    | group, form, layout, or a read-only gate — WITHOUT the resource declaration
-    | ever naming a realm (declarations stay realm-agnostic; frame stays agnostic).
-    | The producer above frame (beam's RealmResourceRegistry) reads this map and
-    | overlays a resource's projection for the target realm; frame is handed the
-    | finished ResourceDefinition and never sees a realm.
-    |
-    | Shape: ['<realm>' => ['<resource-key>' => ['<presentation-field>' => <value>]]].
-    | Only PRESENTATION fields overlay (label, group, icon, section, navOrder,
-    | routeName, form, layout, editData, policy, query, readOnly, deletable,
-    | editable, showable) — runtime fields (model/data/hooks) never vary by realm.
-    | A non-null field overlays the base; an absent field inherits.
-    |
-    | Ships EMPTY — INERT by default (identity projection in every realm), no
-    | behavior change until a host seeds real overrides.
+    | `realm_resource_overrides` now lives at `beam.core.realm_resource_overrides`
+    | (laravel-beam config/beam/core.php), its reader's home. Frame shipped this
+    | key for a map it never read — beam's RealmResourceRegistry was always the
+    | only reader, and frame's own ADR-0001 says a field on frame's contract must
+    | be read by frame or by frame's own plug seam. A host still setting the old
+    | `frame.realm_resource_overrides` spelling keeps working through beam's
+    | fallback read until its migration lands; new hosts set only the beam key.
     */
-    'realm_resource_overrides' => [],
 ];

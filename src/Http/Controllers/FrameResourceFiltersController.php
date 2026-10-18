@@ -12,7 +12,7 @@ use Schemastud\Frame\Data\FilterVariantsResponseData;
 use Schemastud\Frame\Filters\ResourceFilters;
 
 /** Filter capabilities of an addressed Frame resource. */
-class FrameResourceFiltersController
+class FrameResourceFiltersController implements ServesResourceSocket
 {
     public function __construct(private ResourceFilters $filters) {}
 

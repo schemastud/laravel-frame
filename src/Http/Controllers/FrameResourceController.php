@@ -63,7 +63,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  * is the port, frame's shipped default permits, and the producer that owns realms binds the
  * refusing answer.
  */
-class FrameResourceController
+class FrameResourceController implements ServesResourceSocket
 {
     public function __construct(
         protected ResourceRegistry $registry,

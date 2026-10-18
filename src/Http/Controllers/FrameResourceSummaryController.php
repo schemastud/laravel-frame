@@ -8,7 +8,7 @@ use Schemastud\Frame\Data\SummaryResponseData;
 use Schemastud\Frame\Summary\ResourceSummaries;
 
 /** The summary capability of an addressed Frame resource. */
-class FrameResourceSummaryController
+class FrameResourceSummaryController implements ServesResourceSocket
 {
     public function __construct(private ResourceSummaries $summaries) {}
 

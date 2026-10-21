@@ -13,6 +13,7 @@ use Schemastud\Frame\Registry\NavMetadata;
 use Schemastud\Frame\Registry\ResourceDefinition;
 use Schemastud\Frame\Tests\Fixtures\ContactResourceData;
 use Schemastud\Frame\Tests\Fixtures\NarrowSampleGenerator;
+use Schemastud\Frame\Tests\Fixtures\SampleActionInputData;
 use Schemastud\Frame\Tests\Fixtures\SampleCreateResultData;
 use Schemastud\Frame\Tests\Fixtures\SampleModel;
 use Schemastud\Frame\Tests\Fixtures\SampleResourceData;
@@ -35,6 +36,69 @@ use Schemastud\Frame\Tests\Fixtures\SampleResourceData;
  */
 class ResourceSchemaEndpointTest extends TestCase
 {
+    public function test_read_purpose_uses_the_declared_read_shape_and_response_mode(): void
+    {
+        $definition = $this->definition('purpose', Fixtures\SchemaPurposeData::class)
+            ->withOverrides(editData: SampleActionInputData::class);
+        $this->app->instance(ResourceRegistry::class, (new InMemoryResourceRegistry)->register($definition));
+
+        $write = $this->getJson('frame/resources/purpose/schema')->assertOk()->json();
+        $this->assertSame($write, $this->getJson('frame/resources/purpose/schema?purpose=write')->assertOk()->json());
+        $this->assertArrayNotHasKey('approvalState', $write['properties']);
+        $read = $this->getJson('frame/resources/purpose/schema?purpose=read')->assertOk()->json();
+        $this->assertArrayHasKey('approvalState', $read['properties']);
+        $this->assertArrayHasKey('receipt', $read['properties']);
+        $this->assertArrayHasKey('output_title', $read['properties']);
+        $this->assertArrayNotHasKey('input_title', $read['properties']);
+        $this->assertArrayNotHasKey('privateValue', $read['properties']);
+        $this->assertContains('output_title', $read['required']);
+    }
+
+    public function test_write_mode_keeps_input_names_defaults_and_omits_computed_fields(): void
+    {
+        $definition = $this->definition('purpose', Fixtures\SchemaPurposeData::class);
+        $this->app->instance(ResourceRegistry::class, (new InMemoryResourceRegistry)->register($definition));
+        $write = $this->getJson('frame/resources/purpose/schema')->assertOk()->json();
+        $this->assertArrayHasKey('input_title', $write['properties']);
+        $this->assertArrayNotHasKey('receipt', $write['properties']);
+        $this->assertNotContains('input_title', $write['required'] ?? []);
+    }
+
+    public function test_read_purpose_reaches_configured_generator_and_address_resolver(): void
+    {
+        config()->set('data-schemas.generators', [NarrowSampleGenerator::class, JsonSchemaGenerator::class]);
+        $this->getJson('frame/resources/sample/schema?purpose=read')->assertOk()->assertJsonPath('x-mode', 'response');
+        $this->app->instance(ResourceSchemaResolver::class, new class implements ResourceSchemaResolver
+        {
+            public function schema(ResourceDefinition $resource, Request $request): ?array
+            {
+                return $resource->key === 'sample' ? ['title' => $request->query('collection').':'.$request->query('purpose')] : null;
+            }
+        });
+        $this->getJson('frame/resources/sample/schema?collection=articles&purpose=read')->assertOk()->assertJsonPath('title', 'articles:read');
+        $this->getJson('frame/resources/sample/schema?collection=people&purpose=write')->assertOk()->assertJsonPath('title', 'people:write');
+        $this->getJson('frame/resources/contact/schema?purpose=read')->assertOk()->assertJsonStructure(['properties' => ['email']]);
+    }
+
+    public function test_reach_and_unknown_resource_precede_invalid_purpose_validation(): void
+    {
+        $this->getJson('frame/resources/sample/schema?purpose=other')->assertUnprocessable();
+        $this->getJson('frame/resources/sample/schema?purpose[]=read')->assertUnprocessable();
+        $this->getJson('frame/resources/missing/schema?purpose=other')->assertNotFound();
+    }
+
+    public function test_denied_reach_precedes_invalid_purpose_validation(): void
+    {
+        $this->app->instance(\Schemastud\Frame\Contracts\ResourceAccessGate::class, new class implements \Schemastud\Frame\Contracts\ResourceAccessGate
+        {
+            public function allowsResource(ResourceDefinition $definition): bool
+            {
+                return false;
+            }
+        });
+        $this->getJson('frame/resources/sample/schema?purpose=other')->assertForbidden();
+    }
+
     protected function setUp(): void
     {
         parent::setUp();

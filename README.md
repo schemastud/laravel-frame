@@ -23,3 +23,7 @@ rulings. Tests: `composer test`.
 
 Part of the schemastud schema belt; supplied through the fleet's committed git repositories, with
 local checkouts overlaid via the gitignored `composer.local.json` (see the workspace runbook).
+
+See [write forms and read schemas](docs/resource-schemas.md) for the declared purpose selector,
+configured generator, resolver, compatibility and frontend contract. A producer supplies its
+resource declarations, read/write handlers and authorization integration.

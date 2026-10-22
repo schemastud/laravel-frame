@@ -17,6 +17,7 @@ use Schemastud\Frame\Contracts\ResourceRegistry;
 use Schemastud\Frame\Contracts\ResourceSchemaResolver;
 use Schemastud\Frame\Data\ResourcePageData;
 use Schemastud\Frame\Data\ResourceQueryData;
+use Schemastud\Frame\Data\ResourceSchemaQueryData;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -102,8 +103,9 @@ class FrameResourceController implements ServesResourceSocket
     /**
      * Get Resource Schema
      *
-     * The schema used to edit this resource.
+     * The declared write form (default), or read projection with purpose=read.
      */
+    #[QueryFromData(ResourceSchemaQueryData::class)]
     public function schema(Request $request, string $resource): array
     {
         /*
@@ -138,17 +140,19 @@ class FrameResourceController implements ServesResourceSocket
          * decision either way.
          */
         $definition = $this->definition($resource);
+        $query = ResourceSchemaQueryData::validateAndCreate($request->query());
         if (app()->bound(ResourceSchemaResolver::class)) {
             $schema = app(ResourceSchemaResolver::class)->schema($definition, $request);
             if ($schema !== null) {
                 return $schema;
             }
         }
-        $editClass = $definition->editData ?? $definition->data;
+        $read = $query->purpose === 'read';
+        $dataClass = $read ? $definition->data : ($definition->editData ?? $definition->data);
+        $generator = app(Generator::class);
 
-        return app(Generator::class)
-            ->forRequest()
-            ->generate(new ReflectionClass($editClass));
+        return ($read ? $generator->forResponse() : $generator->forRequest())
+            ->generate(new ReflectionClass($dataClass));
     }
 
     public function show(Request $request, string $resource, string $id): array

@@ -68,6 +68,7 @@ class ResourceDefinition extends Data
      * @param  class-string<\Schemastud\Frame\Contracts\ResourceFilterProvider>|null  $filterProvider  the resource's declared filter capability. Server-side only: never on the wire, never in the TS type; a producer names it and frame container-makes it after the access gate.
      * @param  list<ResourceActionDefinition>  $actions  the ACTIONS this resource offers beyond CRUD — a button, an optional form from a declared input Data class, and a declared result presentation (ADR-0005). Empty (the default) ⇒ none, which is every resource declared before the slot existed. Frame reads it (the manifest hands it to the shell's {@see ContextManifest} block, the action schema endpoint reflects each `$input`), so it passes ADR-0001's test directly. It names no producer: a producer projects its own operations onto it.
      * @param  class-string<\Schemastud\Frame\Contracts\ResourceSummaryProvider>|null  $summaryProvider  the resource's declared summary capability (`resources/{resource}/summary`), mirroring `$filterProvider` slot for slot: hidden from the wire and the TS type, preserved by {@see withOverrides()}, resolved only after the access gate. Null ⇒ the route answers 404.
+     * @param  list<ResourceCollectionAddress>  $collections  actor-readable Collection choices for this resource
      */
     public function __construct(
         public string $key,
@@ -101,6 +102,9 @@ class ResourceDefinition extends Data
         /** @var list<ResourceActionDefinition> */
         #[DataCollectionOf(ResourceActionDefinition::class)]
         public array $actions = [],
+        /** @var list<ResourceCollectionAddress> */
+        #[DataCollectionOf(ResourceCollectionAddress::class)]
+        public array $collections = [],
     ) {}
 
     /** The declared action under `$key`, or null when this resource offers none by that key. */
@@ -197,6 +201,7 @@ class ResourceDefinition extends Data
      * @param  class-string|null  $summaryProvider
      * @param  class-string<Data>|null  $createResultData
      * @param  list<ResourceActionDefinition>|null  $actions  replaces the whole list; `[]` clears it
+     * @param  list<ResourceCollectionAddress>|null  $collections  replaces the whole list; `[]` clears it
      */
     public function withOverrides(
         ?string $key = null,
@@ -224,6 +229,7 @@ class ResourceDefinition extends Data
         ?string $routeName = null,
         ?string $createResultData = null,
         ?array $actions = null,
+        ?array $collections = null,
     ): static {
         return new static(
             key: $key ?? $this->key,
@@ -252,6 +258,7 @@ class ResourceDefinition extends Data
             summaryProvider: $summaryProvider ?? $this->summaryProvider,
             createResultData: $createResultData ?? $this->createResultData,
             actions: $actions ?? $this->actions,
+            collections: $collections ?? $this->collections,
         );
     }
 }

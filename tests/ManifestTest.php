@@ -5,6 +5,7 @@ namespace Schemastud\Frame\Tests;
 use Schemastud\Frame\Contracts\ResourceRegistry;
 use Schemastud\Frame\Registry\InMemoryResourceRegistry;
 use Schemastud\Frame\Registry\NavMetadata;
+use Schemastud\Frame\Registry\ResourceCollectionAddress;
 use Schemastud\Frame\Registry\ResourceDefinition;
 use Schemastud\Frame\Tests\Fixtures\SampleCreateResultData;
 use Schemastud\Frame\Tests\Fixtures\SampleModel;
@@ -138,6 +139,25 @@ class ManifestTest extends TestCase
         $response->assertJsonMissingPath('resources.0.model');
         $this->assertStringNotContainsString(SampleModel::class, $response->getContent());
         $this->assertStringNotContainsString(SampleResourceData::class, $response->getContent());
+    }
+
+    public function test_manifest_projects_available_collection_addresses_as_stem_and_label(): void
+    {
+        $definition = $this->sampleDefinition()->withOverrides(collections: [
+            new ResourceCollectionAddress('https://schemas.example/articles', 'Articles'),
+            new ResourceCollectionAddress('https://schemas.example/people', 'People'),
+        ]);
+        $this->app->instance(ResourceRegistry::class, (new InMemoryResourceRegistry)->register($definition));
+
+        $this->getJson('/frame/manifest')->assertOk()
+            ->assertJsonPath('resources.0.collections', [
+                ['stem' => 'https://schemas.example/articles', 'label' => 'Articles'],
+                ['stem' => 'https://schemas.example/people', 'label' => 'People'],
+            ])
+            ->assertJsonPath('contexts.sample.collections', [
+                ['stem' => 'https://schemas.example/articles', 'label' => 'Articles'],
+                ['stem' => 'https://schemas.example/people', 'label' => 'People'],
+            ]);
     }
 
     public function test_a_create_result_identity_is_distinct_from_the_read_projection(): void

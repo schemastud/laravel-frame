@@ -70,6 +70,7 @@ class FrameManifestController
                     ...($definition->actions === [] ? [] : ['actions' => $authorizer->actionCapabilities($definition)]),
                 ],
                 $definition->actions,
+                $definition->collections,
             );
         }
 

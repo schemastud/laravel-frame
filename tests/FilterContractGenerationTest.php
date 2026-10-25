@@ -138,6 +138,7 @@ class FilterContractGenerationTest extends TestCase
             $this->assertStringNotContainsString('query:', $definition[1]);
             $this->assertStringNotContainsString('policy:', $definition[1]);
             $this->assertStringContainsString('editData: string | null', $definition[1]);
+            $this->assertStringContainsString('collections: Schemastud.Frame.Registry.ResourceCollectionAddress[]', $definition[1]);
             $this->assertStringContainsString('figures: Schemastud.Frame.Data.SummaryFigureData[]', $output);
             $this->assertStringContainsString('overview: Schemastud.Frame.Data.OverviewData | null', $output);
             $this->assertSame(1, preg_match('/export type OverviewData = \{(.*?)\};/s', $output, $overview));

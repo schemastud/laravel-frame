@@ -9,6 +9,7 @@ use Schemastud\Frame\Contracts\FrameResourceHandler;
 use Schemastud\Frame\Contracts\FrameResourceHandlerResolver;
 use Schemastud\Frame\Contracts\ResourceAccessGate;
 use Schemastud\Frame\Contracts\ResourceRegistry;
+use Schemastud\Frame\Data\ResourceQueryData;
 use Schemastud\Frame\Registry\InMemoryResourceRegistry;
 use Schemastud\Frame\Registry\NavMetadata;
 use Schemastud\Frame\Registry\ResourceDefinition;
@@ -39,10 +40,19 @@ class ResourcePaginationTest extends TestCase
         $this->app->instance(FrameResourceHandlerResolver::class, $resolver);
     }
 
+    public function test_resource_query_uses_camel_property_and_preserves_per_page_wire_name(): void
+    {
+        $query = ResourceQueryData::from(['per_page' => 40]);
+
+        $this->assertSame(40, $query->perPage);
+        $this->assertFalse(property_exists($query, 'per_page'));
+        $this->assertSame(['per_page' => 40], $query->toArray());
+    }
+
     public function test_declared_query_schema_describes_pagination_and_keeps_wire_bounds(): void
     {
         $schema = app(\Schemastud\DataSchemas\Generators\Generator::class)->forRequest()
-            ->generate(new \ReflectionClass(\Schemastud\Frame\Data\ResourceQueryData::class));
+            ->generate(new \ReflectionClass(ResourceQueryData::class));
 
         foreach (['page', 'per_page', 'cursor'] as $name) {
             $this->assertNotEmpty($schema['properties'][$name]['description'] ?? null, $name);

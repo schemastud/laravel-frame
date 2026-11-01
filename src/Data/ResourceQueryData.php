@@ -3,7 +3,7 @@
 namespace Schemastud\Frame\Data;
 
 use Schemastud\DataSchemas\Attributes\Description;
-use Spatie\LaravelData\Attributes\MapInputName;
+use Spatie\LaravelData\Attributes\MapName;
 use Spatie\LaravelData\Attributes\Validation\Max;
 use Spatie\LaravelData\Attributes\Validation\Min;
 use Spatie\LaravelData\Data;
@@ -17,8 +17,8 @@ class ResourceQueryData extends Data
         public string|Optional|null $filterVariant = new Optional,
         #[Description('Page number for resources that use offset pagination.'), Min(1)]
         public int|Optional $page = new Optional,
-        #[Description('Maximum number of rows to return per page.'), MapInputName('per_page'), Min(1), Max(100)]
-        public int|Optional $per_page = new Optional,
+        #[Description('Maximum number of rows to return per page.'), MapName('per_page'), Min(1), Max(100)]
+        public int|Optional $perPage = new Optional,
         #[Description('Opaque continuation cursor returned by the previous page.')]
         public string|Optional|null $cursor = new Optional,
     ) {}

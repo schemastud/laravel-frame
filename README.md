@@ -21,6 +21,19 @@ What it ships:
 Start with [`AGENTS.md`](AGENTS.md) (self-ID, conventions), then [`docs/adr/`](docs/adr/) for the
 rulings. Tests: `composer test`.
 
+## Registries
+
+This package declares one registry:
+
+- [`frame.resources`](docs/registries/frame.resources.mdx): the producers of resource definitions,
+  one registry per name. The package attaches its own in-memory store as the default producer.
+
+It also registers into one registry it doesn't own:
+
+- [`schemas.strategies`](https://github.com/schemastud/laravel-data-schemas/blob/main/docs/registries/schemas.strategies.mdx),
+  from `schemastud/laravel-data-schemas`: four strategies that project `#[Widget]`,
+  `#[ReadOnlyField]`, widget contexts and resource references into the schema.
+
 Part of the schemastud schema belt; supplied through the fleet's committed git repositories, with
 local checkouts overlaid via the gitignored `composer.local.json` (see the workspace runbook).
 

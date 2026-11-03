@@ -1,0 +1,122 @@
+---
+title: Frame resources
+segment: frame.resources
+nav_order: 30
+excerpt: The producers of Frame's resource definitions: one entry per registry that can answer for a resource key.
+---
+
+# Frame resources
+
+Frame draws list, form and detail screens from a **resource definition**: a key such as `plans`,
+the Data class its rows are shaped by, its form and layout, its navigation label, and what a user
+may do with it. `frame.resources` is where Frame finds those definitions. Its entries are not the
+definitions themselves, though. Each entry is a **producer**: a whole registry of definitions,
+attached under a short name. Frame asks its producers, and the producers answer.
+
+That indirection is what lets Frame stay independent. A plain Laravel application writes its
+definitions into Frame's own store; a framework built on top of Frame can attach a producer that
+derives definitions from its own declarations, and both work side by side.
+
+{/* registry-facts:start — generated from the #[IsRegistry] declaration by `splicewire:beam:docs:registries:scaffold`. Rerun the command; do not edit between these markers. */}
+
+- **Root:** `frame.resources`
+- **Entries:** `Schemastud\Frame\Contracts\ResourceRegistry`
+- **Duplicate keys:** Supersede — a later registration under a taken key replaces the earlier entry, in its place
+- **Population:** Optional — an empty registry is normal
+- **Order:** `30` (display order, ascending)
+- **Declared by:** `Schemastud\Frame\Registry\CompositeResourceRegistry`
+
+{/* registry-facts:end */}
+
+## What ships
+
+Frame's service provider binds the `ResourceRegistry` port to this registry and attaches one
+member, `frame`, an in-memory store of `ResourceDefinition`s. In a Frame-only application that is
+the only producer, and registering a definition is one call:
+
+```php
+use Schemastud\Frame\Contracts\ResourceRegistry;
+use Schemastud\Frame\Registry\NavMetadata;
+use Schemastud\Frame\Registry\ResourceDefinition;
+
+$this->app->make(ResourceRegistry::class)->register(new ResourceDefinition(
+    key: 'plans',
+    model: Plan::class,
+    data: PlanData::class,
+    creatable: true,
+    query: null,
+    editData: null,
+    policy: 'manage-plans',
+    form: 'raw',
+    nav: new NavMetadata(label: 'Plans'),
+));
+```
+
+`register()` on this registry always writes into the `frame` member. Other producers fill their own
+stores by their own means.
+
+## Attaching a producer
+
+A package or application that already holds resource declarations somewhere else attaches its own
+registry as a member, rather than copying definitions into Frame's store:
+
+```php
+use Schemastud\Frame\Registry\CompositeResourceRegistry;
+
+$this->callAfterResolving(CompositeResourceRegistry::class, function (CompositeResourceRegistry $resources, $app) {
+    $resources->attach('acme', fn () => $app->make(AcmeResourceRegistry::class), by: 'acme/admin');
+});
+```
+
+The member name is a short, typeable segment (`acme`, not a composer name), and the producer is
+addressable at `frame.resources.acme`. Pass a closure so the producer is built on first read rather
+than at boot, and have it return a shared instance, since the index does not keep what the closure
+returns. A producer implements `Schemastud\Frame\Contracts\ResourceRegistry`: `has()`, `get()`,
+`find()` and `all()` over its resources, plus the registry methods.
+
+Beam is one such producer. It attaches its particle resources as the `beam` member through an
+adapter, so a resource declared once with `#[ParticleResource]` serves Beam's REST API and Frame's
+screens from the same entry. See
+[`beam.particle.resources`](https://github.com/splicewire/laravel-beam/blob/main/docs/registries/beam.particle.resources.mdx)
+for that side.
+
+## Two questions, two halves
+
+This registry answers two different questions, and it keeps them apart:
+
+- **About producers** — `keys()`, `resolve()` and `tryResolve()` work over members.
+  `keys()` returns `frame.resources.frame`, `frame.resources.beam` and so on.
+- **About resources** — `has()`, `get()`, `find()` and `all()` work over the definitions the
+  members produce. These are what Frame's controllers call with a resource key from the URL.
+
+So `has('plans')` asks whether any producer has a framed resource called `plans`, never whether a
+member exists. Each producer keeps its own rules about what it exposes, and the composite delegates
+to them rather than flattening them.
+
+## When two producers have the same resource
+
+That is allowed, and the **last attached member wins**: a keyed read asks the members in reverse
+attachment order and returns the first answer. The displaced definition is still readable through
+its own member. `all()` asks every member. Attaching a second member under a name already taken
+replaces that member, which is the supersede policy at work.
+
+## Who reads it
+
+Frame's routes read it on every request: `GET /frame/manifest` lists the resources the current user
+may reach, and `/frame/resources/{resource}` with its `schema`, `records` and action routes resolve
+one definition by key. An application that attaches no producer at all is legal; its manifest
+serves an empty resource list.
+
+## Related registries
+
+- [`beam.particle.resources`](https://github.com/splicewire/laravel-beam/blob/main/docs/registries/beam.particle.resources.mdx)
+  — Beam's resources, which reach Frame as the `beam` member.
+- [The schemas cluster](https://github.com/schemastud/laravel-data-schemas/blob/main/docs/registries/schemas.mdx)
+  — the schema substrate Frame's definitions are built from.
+
+## Going deeper
+
+[Write forms and read schemas](https://github.com/schemastud/laravel-frame/blob/main/docs/resource-schemas.md) covers the schema endpoint and the
+producer's responsibilities. [Popcorn registries](/beam/docs/foundations/registries) explains
+roots, members and duplicate policies in general. The registry's source is
+[`CompositeResourceRegistry`](https://github.com/schemastud/laravel-frame/blob/main/src/Registry/CompositeResourceRegistry.php).

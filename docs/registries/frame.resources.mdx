@@ -100,7 +100,9 @@ to them rather than flattening them.
 That is allowed, and the **last attached member wins**: a keyed read asks the members in reverse
 attachment order and returns the first answer. The displaced definition is still readable through
 its own member. `all()` asks every member. Attaching a second member under a name already taken
-replaces that member, which is the supersede policy at work.
+replaces that member, which is the
+[**duplicate-key policy**](/beam/docs/foundations/registries#key-policies), **supersede**, at
+work.
 
 ## Who reads it
 

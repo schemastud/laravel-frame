@@ -2,6 +2,7 @@
 
 namespace Schemastud\Frame;
 
+use Rushing\Popcorn\Registries\ScopesRegistrant;
 use Schemastud\Frame\Authorization\DenyingResourceActionAuthorizer;
 use Schemastud\Frame\Authorization\OpenResourceAccessGate;
 use Schemastud\Frame\Contracts\ResourceAccessGate;
@@ -18,6 +19,14 @@ use Spatie\LaravelPackageTools\PackageServiceProvider;
 
 class FrameServiceProvider extends PackageServiceProvider
 {
+    use ScopesRegistrant;
+
+    /** Every registry write in register()/boot() that names no `$by` records this package. */
+    protected function registrant(): string
+    {
+        return 'schemastud/laravel-frame';
+    }
+
     public function configurePackage(Package $package): void
     {
         $package
@@ -63,7 +72,7 @@ class FrameServiceProvider extends PackageServiceProvider
             return (new CompositeResourceRegistry)->attach(
                 CompositeResourceRegistry::DEFAULT_MEMBER,
                 new InMemoryResourceRegistry(CompositeResourceRegistry::DEFAULT_MEMBER),
-                by: static::class,
+                by: 'schemastud/laravel-frame',
             );
         });
 

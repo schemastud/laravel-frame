@@ -28,6 +28,7 @@ class ResourceSummaryCapabilityTest extends TestCase
             ->register($this->resource('closed', ArticleSummary::class))
             ->register($this->resource('declining', DecliningSummary::class))
             ->register($this->resource('expanded', ExpandedSummary::class))
+            ->register($this->resource('trend', ForecastSummary::class))
             ->register($this->resource('mistyped', NotASummaryProvider::class))
             ->register($this->resource('plain')));
         $this->app->instance(ResourceAccessGate::class, new class implements ResourceAccessGate
@@ -82,6 +83,31 @@ class ResourceSummaryCapabilityTest extends TestCase
                 'note' => 'Excludes drafts.',
             ],
         ]);
+    }
+
+    /**
+     * `forecast` is on the wire only when the producer declares it. A figure that never mentions it keeps the
+     * exact bytes every summary had before the field existed (the two tests above pin that), and true and false
+     * both reach the client as declared, for a series widget to tell a projected period from a measured one.
+     */
+    public function test_a_figure_carries_forecast_only_when_its_producer_declares_it(): void
+    {
+        $this->getJson('/frame/resources/trend/summary')->assertOk()->assertExactJson([
+            'key' => 'trend',
+            'label' => 'Trend',
+            'icon' => 'newspaper',
+            'figures' => [
+                ['key' => '2026-09', 'label' => 'Sep 2026', 'value' => 100, 'tone' => null],
+                ['key' => '2026-10', 'label' => 'Oct 2026', 'value' => 110, 'tone' => null, 'forecast' => false],
+                ['key' => '2026-11', 'label' => 'Nov 2026', 'value' => 121, 'tone' => null, 'forecast' => true],
+                ['key' => 'note', 'label' => 'Note', 'value' => 'n/a', 'tone' => null, 'forecast' => null],
+            ],
+            'overview' => null,
+        ]);
+
+        $this->assertArrayNotHasKey('forecast', (new SummaryFigureData('total', 'Total', 1))->toArray());
+        $this->assertTrue(SummaryFigureData::from(['key' => 'k', 'label' => 'L', 'value' => 1, 'forecast' => true])->forecast);
+        $this->assertArrayNotHasKey('forecast', SummaryFigureData::from(['key' => 'k', 'label' => 'L', 'value' => 1])->toArray());
     }
 
     public function test_no_provider_and_a_declining_provider_both_answer_not_found(): void
@@ -150,6 +176,24 @@ class ArticleSummary implements ResourceSummaryProvider
             figures: [
                 new SummaryFigureData('total', $resource->nav->label, 42),
                 new SummaryFigureData('drafts', 'Drafts', 3, 'warning'),
+            ],
+        );
+    }
+}
+
+class ForecastSummary implements ResourceSummaryProvider
+{
+    public function summary(ResourceDefinition $resource): ?SummaryResponseData
+    {
+        return new SummaryResponseData(
+            key: $resource->key,
+            label: $resource->nav->label,
+            icon: $resource->nav->icon,
+            figures: [
+                new SummaryFigureData('2026-09', 'Sep 2026', 100),
+                new SummaryFigureData('2026-10', 'Oct 2026', 110, forecast: false),
+                new SummaryFigureData('2026-11', 'Nov 2026', 121, forecast: true),
+                new SummaryFigureData('note', 'Note', 'n/a', forecast: null),
             ],
         );
     }

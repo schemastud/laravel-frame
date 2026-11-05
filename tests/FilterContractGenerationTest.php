@@ -101,6 +101,7 @@ class FilterContractGenerationTest extends TestCase
         $figure = $root['components']['schemas']['SummaryFigureData']['properties'];
         $this->assertSame('string', $figure['key']['type']);
         $this->assertSame(['string', 'null'], $figure['tone']['type']);
+        $this->assertSame(['boolean', 'null'], $figure['forecast']['type'] ?? null);
         $this->assertArrayNotHasKey('href', $schema['properties']);
 
         // `overview` is a DECLARED shape, not a `mixed` bag: it must reach the spec as a named component.
@@ -140,6 +141,8 @@ class FilterContractGenerationTest extends TestCase
             $this->assertStringContainsString('editData: string | null', $definition[1]);
             $this->assertStringContainsString('collections: Schemastud.Frame.Registry.ResourceCollectionAddress[]', $definition[1]);
             $this->assertStringContainsString('figures: Schemastud.Frame.Data.SummaryFigureData[]', $output);
+            $this->assertSame(1, preg_match('/export type SummaryFigureData = \{(.*?)\};/s', $output, $figure));
+            $this->assertStringContainsString('forecast?: boolean | null', $figure[1]);
             $this->assertStringContainsString('overview: Schemastud.Frame.Data.OverviewData | null', $output);
             $this->assertSame(1, preg_match('/export type OverviewData = \{(.*?)\};/s', $output, $overview));
             $this->assertStringContainsString('headline: Schemastud.Frame.Data.SummaryFigureData | null', $overview[1]);

@@ -3,6 +3,9 @@
 namespace Schemastud\Frame\Data;
 
 use Spatie\LaravelData\Data;
+use Spatie\LaravelData\Optional;
+use Spatie\TypeScriptTransformer\Attributes\LiteralTypeScriptType;
+use Spatie\TypeScriptTransformer\Attributes\Optional as OptionalInTypeScript;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
@@ -24,6 +27,16 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * `null` is the neutral figure and is NOT `TONE_DEFAULT`: the client distinguishes an absent tone from
  * one explicitly declared default only in that the latter is a deliberate declaration; both render
  * neutral. Producers that mean "no tone" pass null.
+ *
+ * ## `forecast` marks a projected period, and is absent unless a producer says so
+ *
+ * A series widget (`@schemastud/frame`'s `trend-card`) reads a summary's figures as periods in order,
+ * and draws a figure with `forecast: true` as projected rather than measured (a dashed segment).
+ * `false` declares the period measured. Leaving the argument out sends no `forecast` key at all,
+ * which the client reads as measured, so every summary that never mentions it keeps its exact bytes.
+ * The client's mirror is `SummaryFigure.forecast?: boolean | null` (`src/cards/types.ts`), and the
+ * generated type says the same: an optional `boolean | null`, never a reference to laravel-data's
+ * `Optional`, which is how "not sent" is spelled on this side only.
  */
 #[TypeScript]
 class SummaryFigureData extends Data
@@ -58,11 +71,15 @@ class SummaryFigureData extends Data
      * @param  string|null  $tone  the semantic tone a renderer maps to its own tokens — one of {@see TONES}
      *                             ({@see TONE_DEFAULT}, {@see TONE_ACTIVE}, {@see TONE_BUSY},
      *                             {@see TONE_WARN}, {@see TONE_DANGER}); null = neutral
+     * @param  bool|null|Optional  $forecast  whether the figure is a projected period (true) or a measured one
+     *                                        (false); left out, the key is not sent and the figure reads as measured
      */
     public function __construct(
         public string $key,
         public string $label,
         public int|float|string $value,
         public ?string $tone = null,
+        #[OptionalInTypeScript, LiteralTypeScriptType('boolean | null')]
+        public bool|null|Optional $forecast = new Optional,
     ) {}
 }

@@ -49,6 +49,29 @@ class EmittedWireKeysTest extends TestCase
         $this->assertSame(['x-stud-widget-contexts'], $studWidget($emitted[EmittedWireKeys::GroupSchemaKeywords]));
     }
 
+    /**
+     * 23 amend (review-r1 REVISE): an author's option bag is opaque even when its own keys start with `x-`. The census
+     * walks JSON-Schema nodes only, so `x-client-option` inside `x-widget-options` (or inside a context entry's
+     * options) is the widget's key, never a frame wire key, and is not listed.
+     */
+    public function test_an_x_named_author_option_is_opaque_and_not_a_wire_key(): void
+    {
+        $emitted = $this->emitted();
+
+        // The fixture really serves them, so the census below had them in reach.
+        $schema = $this->getJson('frame/resources/opaque/schema')->assertOk()->json('properties');
+        $this->assertTrue($schema['prose']['x-widget-options']['x-client-option'] ?? false);
+        $this->assertSame('kept', $schema['email']['x-widget-options']['x-edit-option'] ?? null);
+        $this->assertSame('kept', $schema['email']['x-stud-widget-contexts']['list-column']['options']['x-column-option'] ?? null);
+
+        foreach (['x-client-option', 'x-edit-option', 'x-column-option'] as $option) {
+            foreach ($emitted as $group => $keys) {
+                $this->assertNotContains($option, $keys, "author option [{$option}] read as a [{$group}] key");
+            }
+            $this->assertNotContains($option, EmittedWireKeys::keys(EmittedWireKeys::GroupSchemaKeywords));
+        }
+    }
+
     public function test_every_listed_key_names_a_reader(): void
     {
         foreach (EmittedWireKeys::all() as $group => $keys) {
@@ -205,18 +228,49 @@ class EmittedWireKeysTest extends TestCase
         }
     }
 
+    /**
+     * The `x-` keywords of a served schema, read from JSON-Schema NODES only (23 amend): a node's own `x-` keys are
+     * keywords, and the walk descends only through the keywords that hold subschemas. A keyword's value is never
+     * walked (an `x-widget-options` bag is the author's; `x-stud-widget-contexts` and `x-stud-resource-ref` carry data),
+     * and a name in a property map (`properties`, `$defs`, …) is a name, not a keyword.
+     */
     private function vendorKeywords(mixed $node, callable $add): void
     {
-        if (! is_array($node)) {
+        if (! is_array($node) || array_is_list($node)) {
             return;
         }
-        foreach ($node as $key => $child) {
+
+        foreach (array_keys($node) as $key) {
             if (is_string($key) && str_starts_with($key, 'x-')) {
                 $add($key);
             }
-            $this->vendorKeywords($child, $add);
+        }
+
+        foreach (self::SubschemaMaps as $map) {
+            foreach (is_array($node[$map] ?? null) ? $node[$map] : [] as $subschema) {
+                $this->vendorKeywords($subschema, $add);
+            }
+        }
+        foreach (self::SubschemaLists as $list) {
+            foreach (is_array($node[$list] ?? null) && array_is_list($node[$list]) ? $node[$list] : [] as $subschema) {
+                $this->vendorKeywords($subschema, $add);
+            }
+        }
+        foreach (self::SubschemaSingles as $single) {
+            if (is_array($node[$single] ?? null)) {
+                $this->vendorKeywords($node[$single], $add);
+            }
         }
     }
+
+    /** JSON Schema 2020-12 keywords whose value is a map of name => subschema. */
+    private const SubschemaMaps = ['properties', 'patternProperties', '$defs', 'definitions', 'dependentSchemas'];
+
+    /** Keywords whose value is a list of subschemas. */
+    private const SubschemaLists = ['prefixItems', 'allOf', 'anyOf', 'oneOf'];
+
+    /** Keywords whose value is one subschema. */
+    private const SubschemaSingles = ['items', 'additionalProperties', 'unevaluatedItems', 'unevaluatedProperties', 'propertyNames', 'contains', 'not', 'if', 'then', 'else'];
 
     /** @return list<ResourceDefinition> */
     private function fixtureDefinitions(): array
@@ -231,6 +285,7 @@ class EmittedWireKeysTest extends TestCase
             'refs' => Fixtures\ResourceRefResourceData::class,
             'review' => Fixtures\ReviewFixtureResourceData::class,
             'purpose' => Fixtures\SchemaPurposeData::class,
+            'opaque' => Fixtures\OpaqueOptionsResourceData::class,
         ] as $key => $data) {
             $definitions[] = new ResourceDefinition(
                 key: $key,

@@ -14,7 +14,10 @@ list would reject valid host widgets, while silently substituting a default hide
 ## Decision
 
 The host commits `resources/frame/vocabulary.json`, generated from its kit's registry with
-`pnpm frame:vocabulary --write`. Multiple kits contribute a union with conflicting bindings
+`pnpm frame:vocabulary --write`. That command and the `frame-vocabulary` bin arrive with ticket 33
+and are not yet shipped; the starter script is ticket 39. Until then, a host writes the file by
+hand or has none, and a missing file makes the doctor report name checks as inconclusive.
+Multiple kits contribute a union with conflicting bindings
 recorded explicitly. Laravel-frame reads the file and walks projected declarations; Beam's doctor
 reports advisory vocabulary, name, stock node-type and projection findings. Unknown widget names
 never throw in PHP. Unresolved names draw the runtime unbound marker in every context.

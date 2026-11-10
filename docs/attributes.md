@@ -37,14 +37,17 @@ draws the visible unbound marker. `enriched` is the default form mode and keeps 
 
 ## The host vocabulary
 
-Commit `resources/frame/vocabulary.json` in the host. Generate it from the widget registry the
-host's kit builds, including its custom widget registrations:
+Commit `resources/frame/vocabulary.json` in the host. The command and `frame-vocabulary` bin
+arrive with ticket 33 and are not yet shipped; the starter's script is ticket 39. Until then,
+a host writes the file by hand or has none, in which case the doctor reports name checks as
+inconclusive. Once the tooling ships, generate the file from the widget registry the host's kit
+builds, including its custom widget registrations:
 
 ```bash
 pnpm frame:vocabulary --write
 ```
 
-The command invokes Frame's `frame-vocabulary` tool. With several kits, the file records their
+The planned command invokes Frame's `frame-vocabulary` tool. With several kits, the file records their
 union and any conflicting bindings. PHP reads the file through `WidgetVocabulary`; change its
 location with `config('frame.vocabulary')`. Regenerate when registrations change. A stale file
 can miss a runtime problem; a missing or incompatible file makes name checks inconclusive.
@@ -52,19 +55,21 @@ can miss a runtime problem; a missing or incompatible file makes name checks inc
 ## Advisory doctor IDs
 
 Beam owns the doctor integration; laravel-frame supplies the vocabulary reader and declaration
-walk. These five IDs are advisory (`gate: false`), including when a finding has fail severity:
+walk. The four `FramedDeclarationAudit` IDs below run today and are advisory (`gate: false`),
+including when a finding has fail severity. `frame.wire-keys` arrives with ticket 40 and has not
+yet shipped; it is also specified as advisory:
 
 | ID | Owner under `Splicewire\Beam\Doctor` | What it checks |
 | --- | --- | --- |
-| `frame.vocabulary` | `FramedDeclarationAudit` | File readability/version, context and form-mode sets, and conflicting kit bindings. Remedy: `pnpm frame:vocabulary --write`. |
+| `frame.vocabulary` | `FramedDeclarationAudit` | File readability/version, context and form-mode sets, and conflicting kit bindings. Remedy once ticket 33 ships: `pnpm frame:vocabulary --write`; until then, write the file by hand. |
 | `frame.widget-name` | `FramedDeclarationAudit` | A declared name is bound in its context; reserved names are used only in their allowed context. |
 | `frame.widget-node-type` | `FramedDeclarationAudit` | A stock form-control binding supports the known schema node type; unknown types and conflicting bindings are skipped. |
 | `frame.projection` | `FramedDeclarationAudit` | A resource's definition, schemas and context block project without throwing. |
-| `frame.wire-keys` | `FrameWireKeysAudit` | PHP's emitted keys marked for the client have readers in the host vocabulary's `reads` list. |
+| `frame.wire-keys` (ticket 40, not yet shipped) | `FrameWireKeysAudit` | PHP's emitted keys marked for the client have readers in the host vocabulary's `reads` list. |
 
 The declaration audit includes addressable, unlabelled resources and declared action inputs.
 It reads projected Data schemas and context blocks without a request; request-bound schema nodes
-are not walked. Collection-backed resources and host schema resolvers have separate coverage
-warnings. A clean result therefore does not prove a per-request schema or every realm's kit.
+are not walked. Collection-backed resources get a separate coverage warning; a host schema resolver gets an
+inconclusive coverage line. A clean result therefore does not prove a per-request schema or every realm's kit.
 See [ADR-0007](adr/0007-widget-names-are-checked-against-a-host-committed-vocabulary.md)
 and [ADR-0008](adr/0008-the-registry-port-is-not-an-extension-point.md) for the boundaries.

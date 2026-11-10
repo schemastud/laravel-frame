@@ -31,10 +31,10 @@ use Attribute;
  *   #[Column('number', options: ['zeroAsDash' => true])]
  *   #[Column('date')]
  *
- * A kind name frame does not know is NOT an error here: an unknown kind falls through to
- * the default cell (and the host's own `cell` override, which still wins by field). Frame's
- * vocabulary is a client-side fact, so validating it server-side would be exactly the
- * "a check whose answer depends on the host must not throw" mistake.
+ * A kind is a widget name registered for `list-column`. An unknown name never throws
+ * in PHP: Beam's doctor reports `frame.widget-name` against the host vocabulary,
+ * and an unresolved name draws the unbound marker at runtime. The host's explicit
+ * `cell` override still wins by field. See docs/attributes.md.
  */
 #[Attribute(Attribute::TARGET_PROPERTY)]
 class Column extends WidgetIn

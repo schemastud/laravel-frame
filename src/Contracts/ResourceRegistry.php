@@ -12,6 +12,7 @@ use Schemastud\Frame\Registry\ResourceDefinition;
 
 /**
  * Frame's resource registry PORT — the manifest source frame's own machinery reads.
+ * It is not a supported extension point while Beam is its one producer.
  * Frame's {@see FrameManifestController} and
  * {@see FrameResourceController} resolve resource
  * wiring through this contract; they never name a concrete registry.

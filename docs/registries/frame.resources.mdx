@@ -13,9 +13,8 @@ may do with it. `frame.resources` is where Frame finds those definitions. Its en
 definitions themselves, though. Each entry is a **producer**: a whole registry of definitions,
 attached under a short name. Frame asks its producers, and the producers answer.
 
-That indirection is what lets Frame stay independent. A plain Laravel application writes its
-definitions into Frame's own store; a framework built on top of Frame can attach a producer that
-derives definitions from its own declarations, and both work side by side.
+Frame owns the port and stays independent of the declaration mechanism. Beam is its producer:
+`#[ParticleResource]` supplies the declaration that serves both Beam's REST API and Frame's screens.
 
 {/* registry-facts:start — generated from the #[IsRegistry] declaration; regenerate it, do not edit between these markers. */}
 
@@ -32,57 +31,19 @@ derives definitions from its own declarations, and both work side by side.
 
 ## What ships
 
-Frame's service provider binds the `ResourceRegistry` port to this registry and attaches one
-member, `frame`, an in-memory store of `ResourceDefinition`s. In a Frame-only application that is
-the only producer, and registering a definition is one call:
-
-```php
-use Schemastud\Frame\Contracts\ResourceRegistry;
-use Schemastud\Frame\Registry\NavMetadata;
-use Schemastud\Frame\Registry\ResourceDefinition;
-
-$this->app->make(ResourceRegistry::class)->register(new ResourceDefinition(
-    key: 'plans',
-    model: Plan::class,
-    data: PlanData::class,
-    creatable: true,
-    query: null,
-    editData: null,
-    policy: 'manage-plans',
-    nav: new NavMetadata(label: 'Plans'),
-));
-```
+Frame's service provider binds the `ResourceRegistry` port to the composite registry and attaches
+its in-memory `frame` store. Beam fills the registry through its `beam` adapter, projecting resources
+from `#[ParticleResource]` declarations rather than requiring hand-built definitions in a host.
+See [`beam.particle.resources`](https://github.com/splicewire/laravel-beam/blob/main/docs/registries/beam.particle.resources.mdx).
 
 `form` defaults to `enriched`, which draws each declared widget; `bare` is the plain-data mode. Any
 other value is refused when the definition is built (`Schemastud\Frame\Registry\FormMode`).
-
-`register()` on this registry always writes into the `frame` member. Other producers fill their own
-stores by their own means.
+The [attribute reference](../attributes.md) covers declarations and their doctor checks.
 
 ## Attaching a producer
 
-A package or application that already holds resource declarations somewhere else attaches its own
-registry as a member, rather than copying definitions into Frame's store:
-
-```php
-use Schemastud\Frame\Registry\CompositeResourceRegistry;
-
-$this->callAfterResolving(CompositeResourceRegistry::class, function (CompositeResourceRegistry $resources, $app) {
-    $resources->attach('acme', fn () => $app->make(AcmeResourceRegistry::class), by: 'acme/admin');
-});
-```
-
-The member name is a short, typeable segment (`acme`, not a composer name), and the producer is
-addressable at `frame.resources.acme`. Pass a closure so the producer is built on first read rather
-than at boot, and have it return a shared instance, since the index does not keep what the closure
-returns. A producer implements `Schemastud\Frame\Contracts\ResourceRegistry`: `has()`, `get()`,
-`find()` and `all()` over its resources, plus the registry methods.
-
-Beam is one such producer. It attaches its particle resources as the `beam` member through an
-adapter, so a resource declared once with `#[ParticleResource]` serves Beam's REST API and Frame's
-screens from the same entry. See
-[`beam.particle.resources`](https://github.com/splicewire/laravel-beam/blob/main/docs/registries/beam.particle.resources.mdx)
-for that side.
+The index can hold more than one producer.
+Attaching another producer is not a supported extension point today; Beam is the one producer.
 
 ## Two questions, two halves
 

@@ -1,7 +1,7 @@
 # schemastud/laravel-frame
 
 The **batteries-UX backend rung** for schema-driven admin editors: resolve a resource key to its
-whole editor wiring. Twelve family consumers stand on it; the JS side is `@schemastud/frame`.
+whole editor wiring. Family consumers stand on it; the JS side is `@schemastud/frame`.
 
 ```bash
 composer require schemastud/laravel-frame
@@ -9,13 +9,15 @@ composer require schemastud/laravel-frame
 
 What it ships:
 
-- **`ResourceDefinition` registry** — the popcorn-extending resource-definition registry plus the
-  5-method CRUD plug (each port has two real adapters in the family);
-- **`#[Widget]` → `x-widget` projector** and `#[ReadOnlyField]` — attribute declarations on
-  your Data classes become editor widget wiring. An ordinary `#[WidgetIn('edit', 'name', [...])]`
-  projects onto the same `x-widget` / `x-widget-options`; declare a property's form control with
-  one or the other, never both (projection refuses it). A `heavyweight` edit entry names a
-  full-surface editor and projects nothing. See [ADR-0006](docs/adr/0006-the-form-control-keyword-is-x-widget.md);
+- **`ResourceDefinition` registry** — resources are declared with Beam's `#[ParticleResource]`;
+  Beam is the producer that projects them into Frame's registry.
+- **`Contracts\FrameResourceHandler`** — the public CRUD extension point, with `index`, `show`,
+  `store`, `update` and `destroy`. In Beam, select a custom implementation through `handler:` on
+  the resource declaration.
+- **Nine attributes** — `#[Widget]`, `#[WidgetIn]`, `#[Column]`, `#[NotInList]`, `#[RowActions]`,
+  `#[Summary]`, `#[Overview]`, `#[ReadOnlyField]` and `#[ResourceRef]` declare widget bindings,
+  participation and schema metadata. See the [attribute reference](docs/attributes.md) for their
+  targets, contexts, wire output and advisory doctor checks.
 - **a served `GET /frame/manifest`** — the one door a frontend reads for the composed editor
   surface;
 - sits one level above a filter-schema controller, on `schemastud/laravel-data-schemas` +
@@ -29,7 +31,7 @@ rulings. Tests: `composer test`.
 This package declares one registry:
 
 - [`frame.resources`](docs/registries/frame.resources.mdx): the producers of resource definitions,
-  one registry per name. The package attaches its own in-memory store as the default producer.
+  one registry per name. Frame binds the port; Beam fills it from particle declarations.
 
 It also registers into one registry it doesn't own:
 
@@ -41,5 +43,5 @@ Part of the schemastud schema belt; supplied through the fleet's committed git r
 local checkouts overlaid via the gitignored `composer.local.json` (see the workspace runbook).
 
 See [write forms and read schemas](docs/resource-schemas.md) for the declared purpose selector,
-configured generator, resolver, compatibility and frontend contract. A producer supplies its
-resource declarations, read/write handlers and authorization integration.
+configured generator, resolver, compatibility and frontend contract. Beam supplies resource
+declarations, read/write handlers and authorization integration.

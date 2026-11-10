@@ -9,7 +9,7 @@ use Spatie\LaravelData\Data;
 
 /**
  * A representative single (read+edit) resource Data class exercising frame's generic
- * property attributes: #[Widget] -> x-stud-widget, #[ReadOnlyField] -> readOnly, and
+ * property attributes: #[Widget] -> x-widget, #[ReadOnlyField] -> readOnly, and
  * spatie #[Computed] dropped from forRequest. The resource DECLARATION (which model,
  * nav, layout) is the producer's concern (beam) — frame only projects the shape.
  */

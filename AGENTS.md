@@ -1,6 +1,6 @@
 > You are in **schemastud/laravel-frame** — the batteries-UX backend rung for schema-driven admin editors.
 
-Ships the resource-definition registry (`ResourceDefinition`), the `#[Widget]` -> `x-stud-widget`
+Ships the resource-definition registry (`ResourceDefinition`), the `#[Widget]` -> `x-widget`
 projector, `#[ReadOnlyField]`, and a served `GET /frame/manifest`. Sits one level above a
 filter-schema controller; resolves a resource key to its whole editor wiring. Pairs with
 `@schemastud/frame` on the JS side.

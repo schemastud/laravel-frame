@@ -9,8 +9,8 @@ use Schemastud\Frame\Attributes\Widget;
 use Schemastud\Frame\Keywords;
 
 /**
- * Projects `#[Widget('…')]` on an edit-DTO property to the `x-stud-widget`
- * JSON-Schema vendor keyword (and optional `x-stud-widget-options`), embedded in
+ * Projects `#[Widget('…')]` on an edit-DTO property to the `x-widget`
+ * JSON-Schema vendor keyword (and optional `x-widget-options`), embedded in
  * the property's schema — mirrors FilterableAttributesStrategy. Self-registered
  * into `config('data-schemas.strategies')` by the frame service provider; a strict
  * no-op for properties without the attribute, so adding it never changes other

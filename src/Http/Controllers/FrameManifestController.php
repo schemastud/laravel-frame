@@ -21,7 +21,9 @@ use Schemastud\Frame\Registry\NavManifest;
  * `contexts` is a top-level map keyed by resource key (byNode pointers are
  * resource-local). Additive: the `resources` shape is unchanged — the JS
  * WidgetContextRegistry reads `contexts[<key>]` for the `{byNode, inherits, known}`
- * block, or projects each property's embedded `x-stud-widget-contexts` directly.
+ * block; `byNode` is the client's only carrier of the context map. The embedded
+ * `x-stud-widget-contexts` keyword is not for a client: its one reader is server-side,
+ * laravel-beam's `CollectionResourceContextNodes`.
  *
  * {@see ContextManifest} is RESOLVED rather than `new`'d so its optional
  * {@see \Schemastud\Frame\Contracts\ResourceContextContributor} plug is picked up where a

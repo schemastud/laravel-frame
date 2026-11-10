@@ -8,6 +8,7 @@ use ReflectionClass;
 use ReflectionProperty;
 use Schemastud\DataSchemas\Generators\JsonSchemaGenerator;
 use Schemastud\DataSchemas\Strategies\SchemaStrategyContext;
+use Schemastud\Frame\Attributes\Widget;
 use Schemastud\Frame\Attributes\WidgetIn;
 use Schemastud\Frame\Keywords;
 use Schemastud\Frame\Strategies\WidgetContextsStrategy;
@@ -163,6 +164,38 @@ class WidgetContextsStrategyTest extends TestCase
             [],
             new SchemaStrategyContext([], 'request'),
         );
+    }
+
+    /** frame-foundation 08: a property declares its form control once. `#[Widget]` beside an ordinary edit entry is refused at projection. */
+    public function test_widget_beside_an_ordinary_edit_entry_is_refused_at_projection(): void
+    {
+        $subject = new class
+        {
+            #[Widget('textarea')]
+            #[WidgetIn('edit', 'email-input')]
+            public string $field = '';
+        };
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('declares its form control twice');
+
+        (new WidgetContextsStrategy)->apply(new ReflectionProperty($subject, 'field'), [], new SchemaStrategyContext([], 'request'));
+    }
+
+    /** A heavyweight edit entry names a full-surface editor, not a form control: it sits beside `#[Widget]` and projects nothing onto it. */
+    public function test_a_heavyweight_edit_entry_beside_widget_is_not_a_second_form_control(): void
+    {
+        $subject = new class
+        {
+            #[Widget('textarea')]
+            #[WidgetIn('edit', 'circuit-graph', heavyweight: true)]
+            public string $field = '';
+        };
+
+        $schema = (new WidgetContextsStrategy)->apply(new ReflectionProperty($subject, 'field'), [], new SchemaStrategyContext([], 'request'));
+
+        $this->assertArrayNotHasKey(Keywords::Widget, $schema);
+        $this->assertTrue($schema[Keywords::WidgetContexts]['edit']['heavyweight']);
     }
 
     public function test_list_item_on_a_property_throws(): void

@@ -148,6 +148,34 @@ class ResourceSchemaEndpointTest extends TestCase
         );
     }
 
+    /**
+     * frame-foundation 08: the form control reaches the wire as the bare `x-widget` / `x-widget-options`, however it was
+     * declared. `#[Widget]` stamps it; an ordinary `#[WidgetIn('edit', …)]` is projected onto it (so the entry and the
+     * keyword are one declaration); a heavyweight edit entry names a full-surface editor and projects nothing.
+     */
+    public function test_the_served_schema_carries_the_form_control_as_x_widget(): void
+    {
+        $sample = $this->getJson('frame/resources/sample/schema')->assertOk()->json('properties');
+
+        // The exact set of vendor keywords on each node: the literal `x-widget` pair and nothing namespaced beside it.
+        $vendorKeys = fn (array $node): array => array_values(array_filter(array_keys($node), fn (string $k) => str_starts_with($k, 'x-')));
+        $this->assertSame(['x-widget'], $vendorKeys($sample['body']));
+        $this->assertSame('textarea', $sample['body']['x-widget']);
+        $this->assertSame(['x-widget', 'x-widget-options'], $vendorKeys($sample['interpretation']));
+        $this->assertSame('splicewire-enrich', $sample['interpretation']['x-widget']);
+        $this->assertSame(['tone' => 'warm'], $sample['interpretation']['x-widget-options']);
+
+        $contact = $this->getJson('frame/resources/contact/schema')->assertOk()->json('properties');
+
+        $this->assertSame('email-input', $contact['email']['x-widget'] ?? null);
+        $this->assertSame(['autocomplete' => 'email'], $contact['email']['x-widget-options'] ?? null);
+        $this->assertArrayNotHasKey('x-widget', $contact['graph']);
+        $this->assertArrayNotHasKey('x-widget-options', $contact['graph']);
+        // The context map still carries both entries, the heavyweight one marked.
+        $this->assertSame('circuit-graph', $contact['graph']['x-stud-widget-contexts']['edit']['widget'] ?? null);
+        $this->assertTrue($contact['graph']['x-stud-widget-contexts']['edit']['heavyweight'] ?? false);
+    }
+
     /** The single-generator default — 13 of the estate's 14 hosts — is unchanged by the migration. */
     public function test_the_default_single_generator_host_still_gets_the_ordinary_schema(): void
     {

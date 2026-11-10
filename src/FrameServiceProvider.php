@@ -99,7 +99,7 @@ class FrameServiceProvider extends PackageServiceProvider
 
     /**
      * Append frame's property strategies to the laravel-data-schemas pipeline so
-     * `#[Widget]` projects to `x-stud-widget` and `#[ReadOnlyField]` to `readOnly`.
+     * `#[Widget]` projects to `x-widget` and `#[ReadOnlyField]` to `readOnly`.
      * Idempotent — guards against double-registration on re-boot (the data-filters
      * pattern).
      */

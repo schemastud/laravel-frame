@@ -9,7 +9,7 @@ use Schemastud\Frame\Strategies\ResourceRefStrategy;
  * Declares that an edit-DTO property references rows of another registered frame
  * resource — projected to the `x-stud-resource-ref` JSON-Schema vendor keyword by
  * {@see ResourceRefStrategy}, embedded in the one `forRequest()` schema (the
- * #[Widget]->x-stud-widget way), NOT a sidecar uiSchema. The frontend
+ * #[Widget]->x-widget way), NOT a sidecar uiSchema. The frontend
  * ResourceRefWidget fetches the referenced resource's index to build the picker
  * options; `scope` rides that resource's existing data-filters `query` as pre-applied
  * filter params (NOT new filtering).

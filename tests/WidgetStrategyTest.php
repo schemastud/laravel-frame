@@ -10,7 +10,7 @@ use Schemastud\Frame\Strategies\WidgetAttributesStrategy;
 use Schemastud\Frame\Tests\Fixtures\SampleResourceData;
 
 /**
- * Ticket 02 — the #[Widget] -> x-stud-widget projector and #[ReadOnlyField] ->
+ * Ticket 02 — the #[Widget] -> x-widget projector and #[ReadOnlyField] ->
  * readOnly strategy, plus the ticket 01 #[Computed]-drop exercised together on one
  * request schema. Everything rides the JsonSchemaGenerator strategy pipeline (the
  * #[Filterable]->x-filter way), NOT a sidecar uiSchema or the vocabulary describer.

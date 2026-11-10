@@ -6,6 +6,7 @@ use InvalidArgumentException;
 use ReflectionAttribute;
 use ReflectionClass;
 use ReflectionProperty;
+use Schemastud\Frame\Attributes\Widget;
 use Schemastud\Frame\Attributes\WidgetIn;
 use Schemastud\Frame\Strategies\WidgetContextsStrategy;
 
@@ -14,7 +15,8 @@ use Schemastud\Frame\Strategies\WidgetContextsStrategy;
  * `{context => entry}` wire map — shared by {@see WidgetContextsStrategy}
  * (per-property, embedded in the property schema) and {@see ContextManifest} (per
  * resource node), so the two never diverge. Also owns the closed-enum + arity
- * validation, thrown as \InvalidArgumentException.
+ * validation, and the refusal of a property that declares its form control twice
+ * (`#[Widget]` beside an ordinary edit entry), thrown as \InvalidArgumentException.
  */
 class WidgetContextProjector
 {
@@ -47,10 +49,44 @@ class WidgetContextProjector
      */
     public function forProperty(ReflectionProperty $property): array
     {
-        return $this->project(
+        $map = $this->project(
             $property->getAttributes(WidgetIn::class, ReflectionAttribute::IS_INSTANCEOF),
             classLevel: false,
         );
+
+        // A property declares its form control once: `#[Widget]` or an ordinary edit entry, never both. Both are the
+        // same keyword on the wire, so a second spelling could only disagree with the first.
+        if (self::ordinaryEditWidget($map) !== null && $property->getAttributes(Widget::class) !== []) {
+            throw new InvalidArgumentException(
+                "Property [{$property->getDeclaringClass()->getName()}::\${$property->getName()}] declares its form control twice: "
+                .'#[Widget] and an ordinary #[WidgetIn(\'edit\', …)]. Declare it once.'
+            );
+        }
+
+        return $map;
+    }
+
+    /**
+     * The form control an ordinary (not heavyweight) edit entry binds, read from a property's projected map: the
+     * name and the entry's options, which {@see WidgetContextsStrategy} projects onto `x-widget` /
+     * `x-widget-options`. Null when there is no edit entry, when it binds no name, or when it is heavyweight (a
+     * heavyweight entry names a full-surface editor, not a form control).
+     *
+     * @param  array<string, array<string, mixed>>  $map
+     * @return array{name: string, options: array<string, mixed>|null}|null
+     */
+    public static function ordinaryEditWidget(array $map): ?array
+    {
+        $edit = $map['edit'] ?? null;
+
+        if ($edit === null || ! is_string($edit['widget'] ?? null) || ($edit['heavyweight'] ?? false) === true) {
+            return null;
+        }
+
+        /** @var array<string, mixed>|null $options */
+        $options = $edit['options'] ?? null;
+
+        return ['name' => $edit['widget'], 'options' => $options];
     }
 
     /**

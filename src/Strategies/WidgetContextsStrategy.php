@@ -14,7 +14,10 @@ use Schemastud\Frame\Registry\WidgetContextProjector;
 /**
  * Projects the `#[WidgetIn]` family (base + #[Column]/#[NotInList] sugar) on a
  * property to the `x-stud-widget-contexts` map keyword, embedded in the property's
- * schema (the #[Filterable] -> x-filter way, NOT a sidecar uiSchema). The per-context
+ * schema (the #[Filterable] -> x-filter way, NOT a sidecar uiSchema). An ordinary
+ * (not heavyweight) `edit` entry is also projected onto the form control,
+ * `x-widget` / `x-widget-options` (ADR-0006); a property that also carries
+ * `#[Widget]` is refused by the projector. The per-context
  * projection + closed-enum/arity validation is delegated to {@see WidgetContextProjector}
  * so the strategy and {@see ContextManifest} never diverge.
  *
@@ -40,11 +43,25 @@ class WidgetContextsStrategy implements SchemaStrategy
             return $schema;
         }
 
+        $actions = [
+            ['target' => "$['".Keywords::WidgetContexts."']", 'override' => $map],
+        ];
+
+        // An ordinary edit entry binds the form control: it is projected onto the node keyword the form reads, so the
+        // entry and `x-widget` are one declaration and cannot disagree. A heavyweight one projects nothing.
+        $control = WidgetContextProjector::ordinaryEditWidget($map);
+
+        if ($control !== null) {
+            $actions[] = ['target' => "$['".Keywords::Widget."']", 'override' => $control['name']];
+
+            if ($control['options'] !== null) {
+                $actions[] = ['target' => "$['".Keywords::WidgetOptions."']", 'override' => $control['options']];
+            }
+        }
+
         $overlay = new OverlayStack([[
             'overlay' => '1.0.0',
-            'actions' => [
-                ['target' => "$['".Keywords::WidgetContexts."']", 'override' => $map],
-            ],
+            'actions' => $actions,
         ]]);
 
         return (new SchemaOverlayApplier($schema, $overlay))->apply();

@@ -11,8 +11,11 @@ What it ships:
 
 - **`ResourceDefinition` registry** — the popcorn-extending resource-definition registry plus the
   5-method CRUD plug (each port has two real adapters in the family);
-- **`#[Widget]` → `x-stud-widget` projector** and `#[ReadOnlyField]` — attribute declarations on
-  your Data classes become editor widget wiring;
+- **`#[Widget]` → `x-widget` projector** and `#[ReadOnlyField]` — attribute declarations on
+  your Data classes become editor widget wiring. An ordinary `#[WidgetIn('edit', 'name', [...])]`
+  projects onto the same `x-widget` / `x-widget-options`; declare a property's form control with
+  one or the other, never both (projection refuses it). A `heavyweight` edit entry names a
+  full-surface editor and projects nothing. See [ADR-0006](docs/adr/0006-the-form-control-keyword-is-x-widget.md);
 - **a served `GET /frame/manifest`** — the one door a frontend reads for the composed editor
   surface;
 - sits one level above a filter-schema controller, on `schemastud/laravel-data-schemas` +

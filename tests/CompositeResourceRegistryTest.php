@@ -162,7 +162,7 @@ class CompositeResourceRegistryTest extends TestCase
             query: null,
             editData: null,
             policy: null,
-            form: 'raw',
+            form: 'enriched',
             nav: new NavMetadata(label: $label ?? $key),
         );
     }

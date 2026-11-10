@@ -49,10 +49,12 @@ $this->app->make(ResourceRegistry::class)->register(new ResourceDefinition(
     query: null,
     editData: null,
     policy: 'manage-plans',
-    form: 'raw',
     nav: new NavMetadata(label: 'Plans'),
 ));
 ```
+
+`form` defaults to `enriched`, which draws each declared widget; `bare` is the plain-data mode. Any
+other value is refused when the definition is built (`Schemastud\Frame\Registry\FormMode`).
 
 `register()` on this registry always writes into the `frame` member. Other producers fill their own
 stores by their own means.

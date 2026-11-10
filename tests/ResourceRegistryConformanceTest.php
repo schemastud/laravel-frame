@@ -107,7 +107,7 @@ class ResourceRegistryConformanceTest extends TestCase
             query: null,
             editData: null,
             policy: null,
-            form: 'raw',
+            form: 'enriched',
             nav: new NavMetadata(
                 label: 'Samples',
                 group: 'Testing',

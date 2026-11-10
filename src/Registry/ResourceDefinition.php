@@ -61,7 +61,7 @@ class ResourceDefinition extends Data
      * @param  class-string|null  $editData  rare escape-hatch edit DTO. Class-string in PHP (the schema endpoint reflects `editData ?? data`); on the wire, the generated type's dot-form name (ADR-0004).
      * @param  class-string<Data>|null  $createResultData  the Frame creation result; null uses the read projection. A custom handler may return a declared result such as a record plus a reveal-once receipt.
      * @param  string|null  $policy  ability/policy key the server-side gates resolve against — a Gate ability or a policy class-string. Server-side only: never on the wire, never in the TS type (ADR-0004).
-     * @param  'enriched'|'bare'  $form  per-resource default form mode
+     * @param  'enriched'|'bare'  $form  per-resource default form mode, one of {@see FormMode}. Defaults to `enriched`, which draws each declared widget; any other value is refused here, when the definition is built.
      * @param  'single'|'subnav'|'master-detail'|null  $layout  inner-layout grammar emitted on the ContextManifest (null = the socket's SingleColumn fallback)
      * @param  string  $singularLabel  the resource's display SINGULAR — the noun a create affordance says ("New scaffold pack"). Empty (the default) ⇒ inflected from `$nav->label` (or the key). It exists because the inflector MANGLES mass/irregular nouns (`media` → "Medium"), which is the same reason the producer's own declaration carries the slot; declaring it here is how that declared word reaches a shell instead of dying in the docs generator. Display-only: it carries no capability and gates nothing.
      * @param  'frame'|'host'  $createAffordance  WHERE this resource's create affordance lives, and the only new slot here: `'frame'` (the default, and today's behaviour) means frame's own list Toolbar emits the "New …" button; `'host'` means the host's page chrome owns it — a title-row button, a reveal-once dialog — so frame emits none. It is a PRESENTATION slot, deliberately not a capability one: $creatable already answers "may this be created at all", and a resource can be perfectly creatable while its affordance lives somewhere frame cannot see. The two are combined into one resolved value on the {@see ContextManifest}, never on the client, so `creatable` keeps exactly one spelling.
@@ -83,8 +83,8 @@ class ResourceDefinition extends Data
         public ?string $editData,
         #[Hidden, HiddenFromTypeScript, Keyword(Keywords::Hidden)]
         public ?string $policy,
-        public string $form,
         public NavMetadata $nav,
+        public string $form = 'enriched',
         public ?string $layout = null,
         public bool $deletable = true,
         public bool $editable = true,
@@ -105,7 +105,9 @@ class ResourceDefinition extends Data
         /** @var list<ResourceCollectionAddress> */
         #[DataCollectionOf(ResourceCollectionAddress::class)]
         public array $collections = [],
-    ) {}
+    ) {
+        FormMode::fromDeclaration($form, $key);
+    }
 
     /** The declared action under `$key`, or null when this resource offers none by that key. */
     public function action(string $key): ?ResourceActionDefinition

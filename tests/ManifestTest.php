@@ -40,7 +40,7 @@ class ManifestTest extends TestCase
             query: null,
             editData: null,
             policy: null,
-            form: 'raw',
+            form: 'enriched',
             nav: new NavMetadata(
                 label: 'Samples',
                 group: 'Testing',
@@ -61,7 +61,7 @@ class ManifestTest extends TestCase
         $this->assertInstanceOf(ResourceDefinition::class, $def);
         $this->assertSame(SampleResourceData::class, $def->data);
         $this->assertSame(SampleModel::class, $def->model);
-        $this->assertSame('raw', $def->form);
+        $this->assertSame('enriched', $def->form);
         $this->assertSame('Samples', $def->nav->label);
         $this->assertSame('Testing', $def->nav->group);
         // FC-22 host-nav join keys ride NavMetadata.
@@ -90,7 +90,7 @@ class ManifestTest extends TestCase
             model: SampleModel::class,
             data: SampleResourceData::class,
             creatable: false,
-            query: null, editData: null, policy: null, form: 'raw',
+            query: null, editData: null, policy: null, form: 'enriched',
             nav: new NavMetadata(label: 'Read only'),
             deletable: false,
             editable: false,
@@ -115,7 +115,7 @@ class ManifestTest extends TestCase
             query: null,
             editData: null,
             policy: null,
-            form: 'raw',
+            form: 'enriched',
             nav: new NavMetadata(label: 'Layer Nodes', group: 'Numerology'),
         ));
 
@@ -129,7 +129,7 @@ class ManifestTest extends TestCase
 
         $response->assertOk();
         $response->assertJsonPath('resources.0.key', 'sample');
-        $response->assertJsonPath('resources.0.form', 'raw');
+        $response->assertJsonPath('resources.0.form', 'enriched');
         $response->assertJsonPath('resources.0.nav.label', 'Samples');
         // The wire names the GENERATED type (dot form, the name `typescript:transform` emits), never
         // the PHP class — and carries no `model` at all (ADR-0002). The registry object one test up
@@ -228,7 +228,7 @@ class ManifestTest extends TestCase
             model: SampleModel::class,
             data: SampleResourceData::class,
             creatable: true,
-            query: null, editData: null, policy: null, form: 'raw',
+            query: null, editData: null, policy: null, form: 'enriched',
             nav: new NavMetadata(label: 'Layers'),
         ));
         $registry->register(new ResourceDefinition(
@@ -236,7 +236,7 @@ class ManifestTest extends TestCase
             model: SampleModel::class,
             data: SampleResourceData::class,
             creatable: true,
-            query: null, editData: null, policy: null, form: 'raw',
+            query: null, editData: null, policy: null, form: 'enriched',
             nav: new NavMetadata(label: 'Layer Nodes'),
         ));
 
@@ -244,5 +244,43 @@ class ManifestTest extends TestCase
         $keys = array_map(fn (ResourceDefinition $d) => $d->key, $registry->all());
         $this->assertContains('layers', $keys);
         $this->assertContains('layer-nodes', $keys);
+    }
+
+    /** frame-foundation 17: `enriched` is the default form mode, so a resource that declares none draws its widgets. */
+    public function test_a_resource_declared_without_a_form_mode_is_served_enriched(): void
+    {
+        $this->app->make(ResourceRegistry::class)->register(new ResourceDefinition(
+            key: 'undeclared-form',
+            model: SampleModel::class,
+            data: SampleResourceData::class,
+            creatable: true,
+            query: null,
+            editData: null,
+            policy: null,
+            nav: new NavMetadata(label: 'Undeclared'),
+        ));
+
+        $resources = collect($this->getJson('/frame/manifest')->assertOk()->json('resources'));
+
+        $this->assertSame('enriched', $resources->firstWhere('key', 'undeclared-form')['form'] ?? null);
+    }
+
+    /** frame-foundation 17: a form mode outside {@see \Schemastud\Frame\Registry\FormMode} is refused when the definition is built. */
+    public function test_a_raw_form_mode_is_refused_when_the_definition_is_built(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Resource [legacy] declares form mode [raw]; a form mode is one of: enriched, bare.');
+
+        new ResourceDefinition(
+            key: 'legacy',
+            model: SampleModel::class,
+            data: SampleResourceData::class,
+            creatable: true,
+            query: null,
+            editData: null,
+            policy: null,
+            nav: new NavMetadata(label: 'Legacy'),
+            form: 'raw',
+        );
     }
 }

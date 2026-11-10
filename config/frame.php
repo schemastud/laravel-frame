@@ -31,6 +31,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Widget vocabulary file
+    |--------------------------------------------------------------------------
+    | Where the host's widget vocabulary lives: the names its frame kit binds, per
+    | context, with their RJSF stock node types (frame-foundation ticket 05, ruling 2).
+    | The file is GENERATED and committed: `pnpm frame:vocabulary --write` runs
+    | @schemastud/frame's `frame-vocabulary` bin, and `--out` moves it. PHP reads it
+    | through Schemastud\Frame\Vocabulary\WidgetVocabulary; a missing file is a state
+    | the reader reports, not an error. A relative path resolves against base_path().
+    */
+    'vocabulary' => resource_path('frame/vocabulary.json'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Per-realm resource presentation overrides — MOVED (A4-C5, 2026-10-18)
     |--------------------------------------------------------------------------
     | `realm_resource_overrides` now lives at `beam.core.realm_resource_overrides`

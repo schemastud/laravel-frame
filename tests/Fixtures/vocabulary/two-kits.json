@@ -1,0 +1,14 @@
+{
+    "$comment": "Test fixture in the frame-vocabulary file shape (ticket 05, ruling 2): two kits that bind `date` differently in `edit`.",
+    "version": 1,
+    "contexts": ["edit", "detail", "list-column", "list-item", "row-cell", "summary", "overview"],
+    "formModes": ["enriched", "bare"],
+    "reserved": ["row-actions"],
+    "widgets": {
+        "badge": [{ "contexts": ["list-column"] }],
+        "date": [{ "contexts": ["list-column"] }, { "stock": ["string"] }, {}],
+        "rich-content": [{}],
+        "textarea": [{ "stock": ["string"] }]
+    },
+    "conflicts": { "date": ["edit"] }
+}

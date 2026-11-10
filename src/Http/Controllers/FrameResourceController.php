@@ -4,10 +4,8 @@ namespace Schemastud\Frame\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use ReflectionClass;
 use Rushing\LaravelDataSchemasScribe\Attributes\QueryFromData;
 use Rushing\LaravelDataSchemasScribe\Attributes\ResponseFromData;
-use Schemastud\DataSchemas\Generators\Generator;
 use Schemastud\Frame\Authorization\ResourceAuthorizer;
 use Schemastud\Frame\Contracts\ActorAwareFrameResourceHandler;
 use Schemastud\Frame\Contracts\FrameResourceHandler;
@@ -18,6 +16,7 @@ use Schemastud\Frame\Contracts\ResourceSchemaResolver;
 use Schemastud\Frame\Data\ResourcePageData;
 use Schemastud\Frame\Data\ResourceQueryData;
 use Schemastud\Frame\Data\ResourceSchemaQueryData;
+use Schemastud\Frame\Registry\ResourceSchemas;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -147,12 +146,9 @@ class FrameResourceController implements ServesResourceSocket
                 return $schema;
             }
         }
-        $read = $query->purpose === 'read';
-        $dataClass = $read ? $definition->data : ($definition->editData ?? $definition->data);
-        $generator = app(Generator::class);
 
-        return ($read ? $generator->forResponse() : $generator->forRequest())
-            ->generate(new ReflectionClass($dataClass));
+        // The class-and-generator choice is one shared method, so the declaration walker reads what this serves.
+        return app(ResourceSchemas::class)->forResource($definition, $query->purpose);
     }
 
     public function show(Request $request, string $resource, string $id): array
@@ -233,9 +229,7 @@ class FrameResourceController implements ServesResourceSocket
             throw new NotFoundHttpException("The '{$resource}' frame resource declares no action '{$action}' with a form.");
         }
 
-        return app(Generator::class)
-            ->forRequest()
-            ->generate(new ReflectionClass($declared->input));
+        return app(ResourceSchemas::class)->forActionInput($declared);
     }
 
     protected function definition(string $resource)

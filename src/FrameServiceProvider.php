@@ -8,7 +8,9 @@ use Schemastud\Frame\Authorization\OpenResourceAccessGate;
 use Schemastud\Frame\Contracts\ResourceAccessGate;
 use Schemastud\Frame\Contracts\ResourceActionAuthorizer;
 use Schemastud\Frame\Contracts\ResourceRegistry;
+use Schemastud\Frame\Contracts\WidgetLabel;
 use Schemastud\Frame\Registry\CompositeResourceRegistry;
+use Schemastud\Frame\Registry\IdentityWidgetLabel;
 use Schemastud\Frame\Registry\InMemoryResourceRegistry;
 use Schemastud\Frame\Strategies\ReadOnlyAttributeStrategy;
 use Schemastud\Frame\Strategies\ResourceRefStrategy;
@@ -38,6 +40,10 @@ class FrameServiceProvider extends PackageServiceProvider
     {
         $this->registerResourceRegistry();
         $this->registerResourceAccessGate();
+
+        // localization 10: the widget-context label hook. Identity by default, so projections are unchanged;
+        // `singletonIf`, so a package above this one (splicewire/laravel-beam) that binds its own wins in either order.
+        $this->app->singletonIf(WidgetLabel::class, IdentityWidgetLabel::class);
     }
 
     public function packageBooted(): void

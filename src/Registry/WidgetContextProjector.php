@@ -52,6 +52,7 @@ class WidgetContextProjector
         $map = $this->project(
             $property->getAttributes(WidgetIn::class, ReflectionAttribute::IS_INSTANCEOF),
             classLevel: false,
+            property: $property,
         );
 
         // A property declares its form control once: `#[Widget]` or an ordinary edit entry, never both. Both are the
@@ -108,7 +109,7 @@ class WidgetContextProjector
      * @param  array<int, ReflectionAttribute<WidgetIn>>  $attributes
      * @return array<string, array<string, mixed>>
      */
-    private function project(array $attributes, bool $classLevel): array
+    private function project(array $attributes, bool $classLevel, ?ReflectionProperty $property = null): array
     {
         $map = [];
 
@@ -117,7 +118,7 @@ class WidgetContextProjector
 
             $this->validate($widgetIn->context, $classLevel, $widgetIn->bind);
 
-            $map[$widgetIn->context] = $this->entry($widgetIn);
+            $map[$widgetIn->context] = $this->entry($widgetIn, $property);
         }
 
         return $map;
@@ -129,7 +130,7 @@ class WidgetContextProjector
      *
      * @return array<string, mixed>
      */
-    private function entry(WidgetIn $widgetIn): array
+    private function entry(WidgetIn $widgetIn, ?ReflectionProperty $property = null): array
     {
         $entry = [];
 
@@ -154,8 +155,14 @@ class WidgetContextProjector
             $entry['sort'] = $widgetIn->sort;
         }
 
-        if ($widgetIn->label !== null) {
-            $entry['label'] = $widgetIn->label;
+        // localization 10: a property context's label goes through the label hook (identity by default, so unchanged);
+        // a class-level context has no derived key and keeps its declared label.
+        $label = $property === null
+            ? $widgetIn->label
+            : IdentityWidgetLabel::current()->label($property, $widgetIn->context, $widgetIn->label);
+
+        if ($label !== null) {
+            $entry['label'] = $label;
         }
 
         // inheritsBinding defaults to true; emit only when explicitly narrowed.

@@ -45,3 +45,5 @@ local checkouts overlaid via the gitignored `composer.local.json` (see the works
 See [write forms and read schemas](docs/resource-schemas.md) for the declared purpose selector,
 configured generator, resolver, compatibility and frontend contract. Beam supplies resource
 declarations, read/write handlers and authorization integration.
+
+Frame serves `/stud/frame` by default and retains `/frame` until owner-review ticket 16. See [the expansion contract](docs/package-api-root.md) and [ADR-0009](docs/adr/0009-provider-dual-mounts-the-api-root-during-expand.md) for the same-release JS requirement and host policy boundaries.

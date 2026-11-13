@@ -21,3 +21,5 @@ Variant selection travels as `filterVariant` in the resource query and saved que
 The former `filter-schema/{resource}`, `filter-options/{ref}`, and `saved-filters` routes no longer mount. Move provider selection from a global binding to the resource declaration and migrate transport calls to the resource root. Persistence belongs to a declared resource and its handler; unbound storage must not report a successful save.
 
 Beam implements the port from its resource declarations and supplies a saved-filter resource. Frame-only applications can provide their own implementations without importing Beam.
+
+During the root expansion, an identical method/path/domain/action/middleware/defaults exposure is reused (the first route name wins); a conflicting duplicate refuses by name. This also applies when the collection was loaded from the route cache. The normal single mount and distinct host realm exposures are unchanged.

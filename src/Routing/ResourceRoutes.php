@@ -2,11 +2,13 @@
 
 namespace Schemastud\Frame\Routing;
 
-use Illuminate\Support\Facades\Route;
 use Schemastud\Frame\Http\Controllers\FrameResourceFiltersController;
 use Schemastud\Frame\Http\Controllers\FrameResourceSummaryController;
 
-/** Mount the resource capability interface inside a host's chosen exposure. */
+/**
+ * Mount the resource capability interface inside a host's chosen exposure.
+ * Identical method/path/domain/action/middleware/defaults keep the first name; conflicts refuse by name.
+ */
 class ResourceRoutes
 {
     /** @param array<string, mixed> $defaults Host-owned route context. */
@@ -48,10 +50,6 @@ class ResourceRoutes
      */
     private static function mount(string $at, string $suffix, array $action, string $name, array $defaults): void
     {
-        $route = Route::get(rtrim($at, '/').'/'.$suffix, $action)->name($name);
-
-        foreach ($defaults as $key => $value) {
-            $route->defaults($key, $value);
-        }
+        FrameRoutes::route(['GET', 'HEAD'], rtrim($at, '/').'/'.$suffix, $action, $name, $defaults);
     }
 }

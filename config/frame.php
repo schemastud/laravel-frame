@@ -6,10 +6,10 @@ return [
     |--------------------------------------------------------------------------
     | Server surface (routes)
     |--------------------------------------------------------------------------
-    | Frame's whole server surface mounts under one prefix + middleware, so a host
-    | moves the CMS by flipping 'route_prefix' (e.g. 'frame' → '~/beam' — a '~/'
-    | sentinel fences the gated admin off from public content routes) and gates it
-    | via 'middleware'.
+    | Until owner-review ticket 16, the provider serves both api_root (stud/frame)
+    | and the retained route_prefix (frame), behind the same middleware. Changing
+    | api_root moves the new exposure only. A host fencing by URL must cover both
+    | roots or disable automatic registration and compose its boundary explicitly.
     |
     | - register_route:           master switch for the package route group
     |                             (manifest + resource socket). A host that mounts
@@ -26,6 +26,8 @@ return [
     */
     'register_route' => true,
     'register_resource_routes' => true,
+    'api_root' => 'stud/frame',
+    // Legacy exposure only, retained until owner-review ticket 16.
     'route_prefix' => 'frame',
     'middleware' => ['web'],
 

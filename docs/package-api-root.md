@@ -9,3 +9,5 @@ CO-RELEASE: this PHP change must ship in the SAME Frame release as frame-foundat
 The first registration owns the name if api_root equals the legacy root. Hosts with a cached config must rebuild it on upgrade so the new api_root default is present. Hosts whose access, CORS, CSRF or forced-JSON policies key on the old URL must cover stud/frame too, or set register_route=false and compose their boundary. The flagship and Tower already choose explicit registration.
 
 Root release and exception authority is durably recorded on owner-review queue row qitem-20261113001849-275aa0d3: frame batch released00:20Z, provider exception ruled01:54Z (coordinator messages, reflected in that row's transitions). The root/charter owns propagation into ticket13e and frame-foundation61; this package author does not edit those shared tracker files.
+
+The duplicate check compares declared middleware metadata without gathering it during registration. A host can append middleware after reuse and dispatch still sees the addition. The same guard correction propagates to the Docs and MCP exports; each owns its release record.

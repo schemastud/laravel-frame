@@ -76,4 +76,16 @@ class PackageRootTest extends TestCase
         $this->assertCount(2, $rows);
         $this->assertSame(['limited/legacy/manifest', 'limited/current/manifest'], $rows->map(fn ($r) => $r->uri())->values()->all());
     }
+
+    public function test_duplicate_guard_does_not_freeze_later_host_middleware(): void
+    {
+        $routes = app('router')->getRoutes();
+        $manifest = $routes->match(Request::create('/stud/frame/manifest'));
+        $filters = $routes->match(Request::create('/stud/frame/resources/example/filters/schema'));
+        FrameRoutes::mount();
+        foreach ([$manifest, $filters] as $route) {
+            $route->middleware('after-frame-mount');
+            $this->assertContains('after-frame-mount', $route->gatherMiddleware());
+        }
+    }
 }

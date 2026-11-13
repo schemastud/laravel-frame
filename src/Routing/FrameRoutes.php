@@ -64,7 +64,7 @@ final class FrameRoutes
                 $actions[] = $action[0];
             }
             if (in_array($existing->getActionName(), $actions, true)
-                && $existing->gatherMiddleware() === array_values(array_unique((array) ($group['middleware'] ?? [])))
+                && Router::uniqueMiddleware($existing->middleware()) === Router::uniqueMiddleware((array) ($group['middleware'] ?? []))
                 && $existing->defaults === $defaults) {
                 return;
             }

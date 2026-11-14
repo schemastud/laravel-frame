@@ -11,6 +11,60 @@ use Schemastud\Frame\Http\Controllers\FrameResourceController;
 /** Frame's foundation-owned root; no dependency on a consuming engine. */
 final class FrameRoutes
 {
+    private const AUTOMATIC = '_frame_automatic';
+
+    /** @internal Provider-owned exposures; the marker survives route caching. */
+    public static function automatic(): void
+    {
+        Route::group([self::AUTOMATIC => true], function (): void {
+            self::legacy();
+            self::mount();
+        });
+    }
+
+    /** Validate the final collection, or call explicitly after adding dynamic routes. */
+    public static function validateNames(): void
+    {
+        if (! config('frame.register_route', true)) {
+            return;
+        }
+
+        $routes = app(Router::class)->getRoutes();
+        $automaticNames = [];
+        foreach ($routes as $route) {
+            if ($route->getAction(self::AUTOMATIC) && $route->getName() !== null) {
+                $automaticNames[$route->getName()] = true;
+            }
+        }
+
+        $seen = [];
+        foreach ($routes as $route) {
+            $name = $route->getName();
+            if ($name === null || ! isset($automaticNames[$name])) {
+                continue;
+            }
+            if (isset($seen[$name]) && $seen[$name] !== $route) {
+                throw new LogicException(self::collision($name, self::describe($seen[$name]), self::describe($route)));
+            }
+            $seen[$name] = $route;
+        }
+    }
+
+    private static function describe(\Illuminate\Routing\Route $route): string
+    {
+        return self::exposure($route->methods(), $route->uri(), $route->getDomain(), $route->getActionName(), $route->middleware());
+    }
+
+    private static function exposure(array $methods, string $uri, ?string $domain, string $action, array $middleware): string
+    {
+        return implode('|', $methods).' /'.$uri.' domain='.($domain ?? '*').' action='.$action.' middleware='.json_encode($middleware);
+    }
+
+    private static function collision(string $name, string $first, string $second): string
+    {
+        return 'Frame automatic route name collision ['.$name.']: '.$first.' conflicts with '.$second.'. Set frame.register_route=false and mount the required sockets explicitly inside the host boundary.';
+    }
+
     public static function mount(): void
     {
         self::atRoot((string) config('frame.api_root'), 'stud.frame.');
@@ -66,9 +120,25 @@ final class FrameRoutes
             if (in_array($existing->getActionName(), $actions, true)
                 && Router::uniqueMiddleware($existing->middleware()) === Router::uniqueMiddleware((array) ($group['middleware'] ?? []))
                 && $existing->defaults === $defaults) {
+                if ($group[self::AUTOMATIC] ?? false) {
+                    $existing->setAction(array_merge($existing->getAction(), [self::AUTOMATIC => true]));
+                }
+
                 return;
             }
             throw new LogicException('Frame exposure conflicts with existing route ['.($existing->getName() ?? $path).'].');
+        }
+        $qualifiedName = ($group['as'] ?? '').$name;
+        if (config('frame.register_route', true)) {
+            foreach ($router->getRoutes() as $existing) {
+                if ($existing->getName() === $qualifiedName && (($group[self::AUTOMATIC] ?? false) || $existing->getAction(self::AUTOMATIC))) {
+                    throw new LogicException(self::collision(
+                        $qualifiedName,
+                        self::describe($existing),
+                        self::exposure($methods, $path, $group['domain'] ?? null, $action[0].'@'.$action[1], (array) ($group['middleware'] ?? [])),
+                    ));
+                }
+            }
         }
         $route = $router->match($methods, $uri, $action)->name($name);
         foreach ($defaults as $key => $value) {

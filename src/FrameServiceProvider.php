@@ -2,6 +2,7 @@
 
 namespace Schemastud\Frame;
 
+use Illuminate\Foundation\Bootstrap\BootProviders;
 use Rushing\Popcorn\Registries\ScopesRegistrant;
 use Schemastud\Frame\Authorization\DenyingResourceActionAuthorizer;
 use Schemastud\Frame\Authorization\OpenResourceAccessGate;
@@ -12,6 +13,7 @@ use Schemastud\Frame\Contracts\WidgetLabel;
 use Schemastud\Frame\Registry\CompositeResourceRegistry;
 use Schemastud\Frame\Registry\IdentityWidgetLabel;
 use Schemastud\Frame\Registry\InMemoryResourceRegistry;
+use Schemastud\Frame\Routing\FrameRoutes;
 use Schemastud\Frame\Strategies\ReadOnlyAttributeStrategy;
 use Schemastud\Frame\Strategies\ResourceRefStrategy;
 use Schemastud\Frame\Strategies\WidgetAttributesStrategy;
@@ -40,6 +42,11 @@ class FrameServiceProvider extends PackageServiceProvider
     {
         $this->registerResourceRegistry();
         $this->registerResourceAccessGate();
+
+        // Application::booted callbacks can add host routes AFTER this provider's boot.
+        $this->app->afterBootstrapping(BootProviders::class, static function (): void {
+            FrameRoutes::validateNames();
+        });
 
         // localization 10: the widget-context label hook. Identity by default, so projections are unchanged;
         // `singletonIf`, so a package above this one (splicewire/laravel-beam) that binds its own wins in either order.

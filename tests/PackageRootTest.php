@@ -25,8 +25,10 @@ class PackageRootTest extends TestCase
         $this->assertIsArray($routes->compile());
     }
 
-    public function test_override_adds_a_twin_and_equal_legacy_root_reuses_the_same_exposure(): void
+    public function test_override_uses_configured_root_and_equal_legacy_root_reuses_the_same_exposure(): void
     {
+        app('router')->setRoutes(new \Illuminate\Routing\RouteCollection);
+        FrameRoutes::legacy();
         $routes = app('router')->getRoutes();
         config(['frame.api_root' => 'custom/editor']);
         FrameRoutes::mount();
@@ -69,6 +71,7 @@ class PackageRootTest extends TestCase
 
     public function test_disabling_resources_keeps_only_the_manifest_at_each_new_exposure(): void
     {
+        app('router')->setRoutes(new \Illuminate\Routing\RouteCollection);
         config(['frame.register_resource_routes' => false, 'frame.api_root' => 'limited/current', 'frame.route_prefix' => 'limited/legacy']);
         FrameRoutes::legacy();
         FrameRoutes::mount();

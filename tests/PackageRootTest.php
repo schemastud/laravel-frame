@@ -3,6 +3,7 @@
 namespace Schemastud\Frame\Tests;
 
 use Illuminate\Http\Request;
+use Illuminate\Routing\RouteCollection;
 use Schemastud\Frame\Routing\FrameRoutes;
 
 class PackageRootTest extends TestCase
@@ -27,7 +28,7 @@ class PackageRootTest extends TestCase
 
     public function test_override_uses_configured_root_and_equal_legacy_root_reuses_the_same_exposure(): void
     {
-        app('router')->setRoutes(new \Illuminate\Routing\RouteCollection);
+        app('router')->setRoutes(new RouteCollection);
         FrameRoutes::legacy();
         $routes = app('router')->getRoutes();
         config(['frame.api_root' => 'custom/editor']);
@@ -71,7 +72,7 @@ class PackageRootTest extends TestCase
 
     public function test_disabling_resources_keeps_only_the_manifest_at_each_new_exposure(): void
     {
-        app('router')->setRoutes(new \Illuminate\Routing\RouteCollection);
+        app('router')->setRoutes(new RouteCollection);
         config(['frame.register_resource_routes' => false, 'frame.api_root' => 'limited/current', 'frame.route_prefix' => 'limited/legacy']);
         FrameRoutes::legacy();
         FrameRoutes::mount();

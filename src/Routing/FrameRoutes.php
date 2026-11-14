@@ -2,6 +2,7 @@
 
 namespace Schemastud\Frame\Routing;
 
+use Illuminate\Routing\Route as FrameworkRoute;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Route;
 use LogicException;
@@ -29,28 +30,24 @@ final class FrameRoutes
             return;
         }
 
-        $routes = app(Router::class)->getRoutes();
-        $automaticNames = [];
-        foreach ($routes as $route) {
-            if ($route->getAction(self::AUTOMATIC) && $route->getName() !== null) {
-                $automaticNames[$route->getName()] = true;
-            }
-        }
-
+        // Materialize a cached collection once, then inspect it in one pass. A cached collection
+        // also includes routes added at runtime, which still need the same collision check.
+        $routes = app(Router::class)->getRoutes()->getRoutes();
         $seen = [];
         foreach ($routes as $route) {
             $name = $route->getName();
-            if ($name === null || ! isset($automaticNames[$name])) {
+            if ($name === null) {
                 continue;
             }
-            if (isset($seen[$name]) && $seen[$name] !== $route) {
+            if (isset($seen[$name]) && $seen[$name] !== $route
+                && ($seen[$name]->getAction(self::AUTOMATIC) || $route->getAction(self::AUTOMATIC))) {
                 throw new LogicException(self::collision($name, self::describe($seen[$name]), self::describe($route)));
             }
-            $seen[$name] = $route;
+            $seen[$name] ??= $route;
         }
     }
 
-    private static function describe(\Illuminate\Routing\Route $route): string
+    private static function describe(FrameworkRoute $route): string
     {
         return self::exposure($route->methods(), $route->uri(), $route->getDomain(), $route->getActionName(), $route->middleware());
     }

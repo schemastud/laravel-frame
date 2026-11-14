@@ -46,3 +46,23 @@ so the matching JS default `/stud/frame` still works. Root approved this refusal
 only after the tower-starter companion (automatic registration off and explicit legacy session
 mount) is on main and live. The root/host owner confirms that prerequisite; this package does not
 change the live host.
+
+
+## Claude review and the amend round (13e-fix)
+
+Fresh Claude returned PROCEED over `fbd1e857..a31235b9`. The author used one amend; it is not
+re-reviewed. The structured review accompanies READY.
+
+| Finding | Disposition and propagation |
+|---|---|
+| Cached routes were materialized twice per validation | Fixed: getRoutes() is called once, followed by a single pass. Runtime-added routes are still checked against the cached routes; the cached/dynamic regression test remains green. Source change is confined to FrameRoutes. |
+| Refusal also stops Artisan and Composer package discovery | Clarified below and in READY. Host configuration and cache migration must precede the new pin. |
+| An identical host exposure keeps its name | Clarified: reuse marks that route as an automatic participant, so its actual retained name is checked for duplicates. It does not reserve an absent canonical alias. |
+| Fully qualified route type / route-collection names | Replaced with imports in FrameRoutes and PackageRootTest; formatting checked. |
+
+A refusal also prevents Artisan from starting, including route:list, config:clear and Composer's
+package:discover. Complete the host's register_route=false change and its config/route cache
+rebuild **on the preceding working package**, before upgrading this pin. If an upgrade is already
+blocked by cached old configuration, restore the preceding package pin and complete that host
+migration before trying the upgrade again. The package does not bypass its guard for console
+commands.

@@ -121,6 +121,10 @@ class ResourceDefinition extends Data
         public array|Optional $requires = new Optional,
     ) {
         FormMode::fromDeclaration($form, $key);
+
+        // The non-empty invariant holds for ANY producer, not only those that call requiresFor(): empty lists are
+        // dropped and an empty map becomes Optional, so `[]` or `{k: []}` never reach the wire.
+        $this->requires = $requires instanceof Optional ? $requires : self::requiresFor($requires);
     }
 
     /** The declared action under `$key`, or null when this resource offers none by that key. */

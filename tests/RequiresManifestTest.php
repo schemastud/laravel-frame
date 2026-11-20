@@ -49,6 +49,23 @@ class RequiresManifestTest extends TestCase
         $this->assertSame(json_encode($plain), json_encode($emptied), 'an all-empty map is the same as none');
     }
 
+    /** review LOW 2: the constructors hold the invariant for ANY producer, not only requiresFor()'s callers. */
+    public function test_empty_lists_and_maps_passed_straight_to_the_constructors_never_reach_the_wire(): void
+    {
+        foreach ([[], ['notes:read' => []], ['notes:read' => [], 'notes:write' => []]] as $requires) {
+            $manifest = $this->manifest($this->definition(requires: $requires, actions: [$this->action('archive', [])]));
+
+            $this->assertArrayNotHasKey('requires', $manifest['resources'][0], json_encode($requires));
+            $this->assertArrayNotHasKey('requires', $manifest['contexts']['notes'], json_encode($requires));
+            $this->assertArrayNotHasKey('requires', $manifest['contexts']['notes']['actions'][0], json_encode($requires));
+            $this->assertArrayNotHasKey('requires', $manifest['resources'][0]['actions'][0], json_encode($requires));
+        }
+
+        $partial = $this->manifest($this->definition(requires: ['notes:read' => [], 'notes:write' => ['terms', 'terms']]));
+        $this->assertSame(['notes:write' => ['terms']], $partial['resources'][0]['requires']);
+        $this->assertSame(['notes:write' => ['terms']], $partial['contexts']['notes']['requires']);
+    }
+
     public function test_requires_for_drops_empty_and_duplicate_keys_and_is_optional_when_nothing_is_left(): void
     {
         $this->assertSame(['a:write' => ['terms']], ResourceDefinition::requiresFor(['a:read' => [], 'a:write' => ['terms', 'terms', '']]));

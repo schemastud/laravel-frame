@@ -72,7 +72,14 @@ class ResourceActionDefinition extends Data
          */
         #[LiteralTypeScriptType('string[]'), TypeScriptOptional]
         public array|Optional $requires = new Optional,
-    ) {}
+    ) {
+        // The non-empty invariant for any producer: keys de-duplicated, blanks dropped, and an empty list is Optional,
+        // so `requires: []` never reaches the wire.
+        if (is_array($requires)) {
+            $keys = array_values(array_unique(array_filter($requires, fn ($key): bool => is_string($key) && $key !== '')));
+            $this->requires = $keys === [] ? new Optional : $keys;
+        }
+    }
 
     /** Whether this action renders a form before it sends — false means a confirm-only button. */
     public function hasInput(): bool

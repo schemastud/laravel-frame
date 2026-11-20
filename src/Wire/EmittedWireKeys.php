@@ -127,6 +127,9 @@ final class EmittedWireKeys
                 'actions[].input' => self::ContextBlockCopy,
                 'actions[].result' => self::ContextBlockCopy,
                 'actions[].destructive' => self::ContextBlockCopy,
+                // agreements 05 / frame-foundation 83: the per-behaviour agreement keys, copied into the context block.
+                'requires' => self::ContextBlockCopy,
+                'actions[].requires' => self::ContextBlockCopy,
                 'collections' => self::ContextBlockCopy,
                 'collections[].stem' => self::ContextBlockCopy,
                 'collections[].label' => self::ContextBlockCopy,
@@ -155,6 +158,11 @@ final class EmittedWireKeys
                 'actions[].input' => self::Frame,                 // actions.ts, ResourceActions.tsx
                 'actions[].result' => self::Frame,                // ResourceActions.tsx
                 'actions[].destructive' => self::Frame,           // slots/defaults.tsx, RecordPicker.tsx
+                // agreements 05 / frame-foundation 83: the per-behaviour agreement keys ({key}:read, {key}:write; an
+                // action's by its op's dotted key), keys only, omitted when none. Its reader is the locked-action path,
+                // which lands with agreements 06 (named here so the doctor's frame.wire-keys sees an emitted client key).
+                'requires' => ['reader' => self::ReaderClient, 'by' => '@splicewire/beam-agreements (agreements 06: the locked-action path)'],
+                'actions[].requires' => ['reader' => self::ReaderClient, 'by' => '@splicewire/beam-agreements (agreements 06: the locked-action path)'],
                 'collections' => self::Frame,                     // RecordPicker.tsx, ListShell.tsx
                 'collections[].stem' => self::Frame,
                 'collections[].label' => self::Frame,

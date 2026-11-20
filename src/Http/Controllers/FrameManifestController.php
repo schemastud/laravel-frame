@@ -9,6 +9,7 @@ use Schemastud\Frame\Contracts\ResourceAccessGate;
 use Schemastud\Frame\Contracts\ResourceRegistry;
 use Schemastud\Frame\Registry\ContextManifest;
 use Schemastud\Frame\Registry\NavManifest;
+use Spatie\LaravelData\Optional;
 
 /**
  * GET /frame/manifest -> { resources: ResourceDefinition[], contexts: {key => block} }
@@ -73,6 +74,7 @@ class FrameManifestController
                 ],
                 $definition->actions,
                 $definition->collections,
+                $definition->requires instanceof Optional ? [] : $definition->requires,
             );
         }
 

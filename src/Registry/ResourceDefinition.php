@@ -10,7 +10,10 @@ use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Attributes\Hidden;
 use Spatie\LaravelData\Attributes\WithTransformer;
 use Spatie\LaravelData\Data;
+use Spatie\LaravelData\Optional;
 use Spatie\TypeScriptTransformer\Attributes\Hidden as HiddenFromTypeScript;
+use Spatie\TypeScriptTransformer\Attributes\LiteralTypeScriptType;
+use Spatie\TypeScriptTransformer\Attributes\Optional as TypeScriptOptional;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
@@ -105,6 +108,17 @@ class ResourceDefinition extends Data
         /** @var list<ResourceCollectionAddress> */
         #[DataCollectionOf(ResourceCollectionAddress::class)]
         public array $collections = [],
+        /**
+         * The agreement keys each of this resource's behaviours requires (agreements 05, beam ADR-0247 amendment):
+         * `{key}:read` covers list and detail, `{key}:write` create/update/delete; keys only, never class names.
+         * {@see Optional} (the default) means none, and the manifest then carries no `requires` key at all, so a
+         * resource with no Requirement is byte-identical. When set, every entry is a non-empty list
+         * ({@see self::requiresFor()} builds it).
+         *
+         * @var array<string, list<string>>|Optional
+         */
+        #[LiteralTypeScriptType('Record<string, string[]>'), TypeScriptOptional]
+        public array|Optional $requires = new Optional,
     ) {
         FormMode::fromDeclaration($form, $key);
     }
@@ -232,6 +246,7 @@ class ResourceDefinition extends Data
         ?string $createResultData = null,
         ?array $actions = null,
         ?array $collections = null,
+        array|Optional|null $requires = null,
     ): static {
         return new static(
             key: $key ?? $this->key,
@@ -261,6 +276,29 @@ class ResourceDefinition extends Data
             createResultData: $createResultData ?? $this->createResultData,
             actions: $actions ?? $this->actions,
             collections: $collections ?? $this->collections,
+            requires: $requires ?? $this->requires,
         );
+    }
+
+    /**
+     * Build a `requires` value from a behaviour map, dropping behaviours with no keys and de-duplicating each list:
+     * {@see Optional} when nothing is left, so a producer can pass whatever it has and an empty map emits no key.
+     *
+     * @param  array<string, list<string>>  $byBehaviour
+     * @return array<string, list<string>>|Optional
+     */
+    public static function requiresFor(array $byBehaviour): array|Optional
+    {
+        $requires = [];
+
+        foreach ($byBehaviour as $behaviour => $keys) {
+            $keys = array_values(array_unique(array_filter($keys, fn ($key): bool => is_string($key) && $key !== '')));
+
+            if ($keys !== []) {
+                $requires[(string) $behaviour] = $keys;
+            }
+        }
+
+        return $requires === [] ? new Optional : $requires;
     }
 }

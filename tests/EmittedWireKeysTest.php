@@ -106,6 +106,9 @@ class EmittedWireKeysTest extends TestCase
         // ...and a spelling can be client in one group and not in the other (the census): frame reads the context
         // block's singularLabel, and the resource entry's copy is unread.
         $this->assertContains('context-block:singularLabel', $keys);
+        // frame-foundation 83: the agreement keys are client keys in the context block, read by agreements 06's path.
+        $this->assertContains('context-block:requires', $keys);
+        $this->assertContains('context-block:actions[].requires', $keys);
         $this->assertNotContains('resource-entry:singularLabel', $keys);
 
         $sorted = $keys;
@@ -212,7 +215,8 @@ class EmittedWireKeysTest extends TestCase
         foreach ($value as $key => $child) {
             $path = $prefix === '' ? (string) $key : $prefix.'.'.$key;
             $add($path);
-            if (! is_array($child) || $key === 'options' || $path === 'inherits' || $path === 'can.actions') {
+            // `requires` (frame-foundation 83) is keyed by BEHAVIOUR keys, which are data, like `can.actions`' action keys.
+            if (! is_array($child) || $key === 'options' || $path === 'inherits' || $path === 'can.actions' || $path === 'requires') {
                 continue;
             }
             if (array_is_list($child)) {
@@ -305,6 +309,16 @@ class EmittedWireKeysTest extends TestCase
                 new ResourceActionDefinition(key: 'reload', label: 'Reload', scope: ResourceActionDefinition::ScopeResource, method: 'POST', url: '/api/wallets/reload', input: Fixtures\SampleActionInputData::class),
                 new ResourceActionDefinition(key: 'archive', label: 'Archive', scope: ResourceActionDefinition::ScopeRecord, method: 'POST', url: '/api/wallets/{id}/archive', result: ResourceActionDefinition::ResultNavigate, destructive: true),
             ],
+        );
+
+        // frame-foundation 83: one agreement-gated resource, so the census sees `requires` on the entry, the context block
+        // and an action, and checks each is listed.
+        $definitions[] = $definitions[0]->withOverrides(
+            key: 'gated',
+            actions: [
+                new ResourceActionDefinition(key: 'publish', label: 'Publish', scope: ResourceActionDefinition::ScopeRecord, method: 'POST', url: '/api/gated/{id}/publish', requires: ['terms']),
+            ],
+            requires: ['gated:write' => ['terms']],
         );
 
         return $definitions;

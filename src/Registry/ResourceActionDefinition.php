@@ -4,6 +4,9 @@ namespace Schemastud\Frame\Registry;
 
 use Spatie\LaravelData\Attributes\WithTransformer;
 use Spatie\LaravelData\Data;
+use Spatie\LaravelData\Optional;
+use Spatie\TypeScriptTransformer\Attributes\LiteralTypeScriptType;
+use Spatie\TypeScriptTransformer\Attributes\Optional as TypeScriptOptional;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
@@ -61,6 +64,14 @@ class ResourceActionDefinition extends Data
         public ?string $input = null,
         public string $result = self::ResultToast,
         public bool $destructive = false,
+        /**
+         * The agreement keys this action's operation requires (agreements 05: by its dotted behaviour key), keys only.
+         * {@see Optional} (the default) means none and no `requires` key is emitted; when set it is a non-empty list.
+         *
+         * @var list<string>|Optional
+         */
+        #[LiteralTypeScriptType('string[]'), TypeScriptOptional]
+        public array|Optional $requires = new Optional,
     ) {}
 
     /** Whether this action renders a form before it sends — false means a confirm-only button. */

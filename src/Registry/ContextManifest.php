@@ -48,9 +48,10 @@ class ContextManifest
      * @param  array{create?: bool, update?: bool, delete?: bool}  $can  the CURRENT ACTOR's class-level write capabilities, from {@see \Schemastud\Frame\Authorization\ResourceAuthorizer::capabilities()}. It rides this block for the same reason the three above do — the shell never sees the definition — and it is the axis the shell has never had. `createAffordance`/`creatable`/`deletable`/`editable` describe the RESOURCE ("may this be created at all", "whose chrome owns the button"); this describes the ACTOR, and the two are deliberately NOT collapsed: a resource can be perfectly `creatable` and un-creatable BY YOU. A shell renders a create affordance when `createAffordance === 'frame' && can.create` — two fields answering two different questions, not two spellings of one. **Empty (the default) ⇒ no actor axis was resolved and the shell falls back to the resource flags alone**, i.e. today's behaviour, so every existing caller of this method emits an unchanged block. That default is permissive by design: this map exists to stop offering buttons that cannot work, and the endpoint — not this — is what refuses the write ({@see \Schemastud\Frame\Http\Controllers\FrameResourceController}).
      * @param  list<ResourceActionDefinition>  $actions  the resource's declared ACTIONS, handed in from {@see ResourceDefinition::$actions} (ADR-0005). They ride this block for the reason `$layout` does — a shell is handed its ContextManifest and never the definition — and pair with `can.actions`, the per-actor half, which the caller puts in `$can`. Empty (the default) ⇒ no `actions` key is emitted, so every existing caller's block is byte-identical.
      * @param  list<ResourceCollectionAddress>  $collections  the current actor's readable Collection choices for this resource
+     * @param  array<string, list<string>>  $requires  the definition's `requires` behaviour map (agreements 05); empty (the default) ⇒ no `requires` key, so every existing caller's block is byte-identical.
      * @return array{byNode: array<string, array<string, mixed>>, inherits: array<string, list<string>>, known: list<string>, layout: 'single'|'subnav'|'master-detail'|null, createAffordance: 'frame'|'host', singularLabel: string, can: array{create?: bool, update?: bool, delete?: bool, actions?: array<string, bool>}, actions?: list<array<string, mixed>>}
      */
-    public function forResource(string $dataClass, ?string $layout = null, ?string $key = null, string $createAffordance = 'frame', string $singularLabel = '', array $can = [], array $actions = [], array $collections = []): array
+    public function forResource(string $dataClass, ?string $layout = null, ?string $key = null, string $createAffordance = 'frame', string $singularLabel = '', array $can = [], array $actions = [], array $collections = [], array $requires = []): array
     {
         $reflection = new ReflectionClass($dataClass);
         $projector = new WidgetContextProjector;
@@ -124,6 +125,10 @@ class ContextManifest
                     array_values($actions),
                 ),
             ]),
+            // The agreement keys each behaviour requires (agreements 05), copied from the definition for the reason
+            // `$layout` is: a shell reads this block, never the definition. Omitted when there are none, so a resource
+            // without a Requirement keeps the exact block it had.
+            ...($requires === [] ? [] : ['requires' => $requires]),
             ...($collections === [] ? [] : [
                 'collections' => array_map(
                     fn (ResourceCollectionAddress $collection): array => $collection->toArray(),

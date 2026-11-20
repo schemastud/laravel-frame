@@ -106,11 +106,13 @@ class EmittedWireKeysTest extends TestCase
         // ...and a spelling can be client in one group and not in the other (the census): frame reads the context
         // block's singularLabel, and the resource entry's copy is unread.
         $this->assertContains('context-block:singularLabel', $keys);
-        // frame-foundation 83: the agreement keys are emitted but UNREAD until agreements 06 lands its reader, so they are
-        // not client keys yet (a host with a `reads` vocabulary would otherwise fail frame.wire-keys on them).
+        // agreements 06 (Q-06b (a)): ONLY the context block's actions[].requires is a client key, read by @schemastud/frame's
+        // ActionButton, which is in frame's own reads, so no host's frame.wire-keys fails on it. The behaviour map and the
+        // resource entry's copies stay unread.
+        $this->assertContains('context-block:actions[].requires', $keys);
         $this->assertNotContains('context-block:requires', $keys);
-        $this->assertNotContains('context-block:actions[].requires', $keys);
         $this->assertNotContains('resource-entry:requires', $keys);
+        $this->assertNotContains('resource-entry:actions[].requires', $keys);
         $this->assertNotContains('resource-entry:singularLabel', $keys);
 
         $sorted = $keys;

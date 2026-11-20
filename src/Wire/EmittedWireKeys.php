@@ -164,17 +164,15 @@ final class EmittedWireKeys
                 'actions[].input' => self::Frame,                 // actions.ts, ResourceActions.tsx
                 'actions[].result' => self::Frame,                // ResourceActions.tsx
                 'actions[].destructive' => self::Frame,           // slots/defaults.tsx, RecordPicker.tsx
-                // agreements 05 / frame-foundation 83: the per-behaviour agreement keys ({key}:read, {key}:write; an action's
-                // by its op's dotted key), keys only, omitted when none. UNREAD until agreements 06 lands its reader, which
-                // flips both to client keys together with its readers module.
+                // agreements 05 / frame-foundation 83: the per-behaviour agreement keys ({key}:read, {key}:write), keys only,
+                // omitted when none. No reader yet: agreements 06 locks ACTIONS, not create or save.
                 'requires' => [
                     'reader' => self::ReaderUnread,
-                    'reason' => 'reader lands with agreements 06 (locked-action path)',
+                    'reason' => 'no reader: agreements 06 locks actions only (actions[].requires); nothing locks create or save on this map yet',
                 ],
-                'actions[].requires' => [
-                    'reader' => self::ReaderUnread,
-                    'reason' => 'reader lands with agreements 06 (locked-action path)',
-                ],
+                // agreements 06 (Q-06b (a)): @schemastud/frame frame/src/ResourceActions.tsx (ActionButton) reads an action's
+                // keys and asks the host's injected actionLock whether it is locked (wireReaders.ts).
+                'actions[].requires' => self::Frame,
                 'collections' => self::Frame,                     // RecordPicker.tsx, ListShell.tsx
                 'collections[].stem' => self::Frame,
                 'collections[].label' => self::Frame,

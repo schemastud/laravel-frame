@@ -127,15 +127,14 @@ final class EmittedWireKeys
                 'actions[].input' => self::ContextBlockCopy,
                 'actions[].result' => self::ContextBlockCopy,
                 'actions[].destructive' => self::ContextBlockCopy,
-                // agreements 05 / frame-foundation 83: the per-behaviour agreement keys, copied into the context block.
+                // agreements 05 / frame-foundation 83: the per-behaviour agreement keys, copied into the context block, which
+                // has no reader either (agreements 06 locks actions only).
                 'requires' => [
                     'reader' => self::ReaderUnread,
-                    'reason' => 'reader lands with agreements 06 (locked-action path); 06 reads the context block\'s copy',
+                    'reason' => 'no reader: the context block\'s copy is the one a client would read, and nothing reads the behaviour map yet (agreements 06 locks actions only)',
                 ],
-                'actions[].requires' => [
-                    'reader' => self::ReaderUnread,
-                    'reason' => 'reader lands with agreements 06 (locked-action path); 06 reads the context block\'s copy',
-                ],
+                // agreements 06: frame reads the context block's copy (ActionButton), like every actions[].* key here.
+                'actions[].requires' => self::ContextBlockCopy,
                 'collections' => self::ContextBlockCopy,
                 'collections[].stem' => self::ContextBlockCopy,
                 'collections[].label' => self::ContextBlockCopy,

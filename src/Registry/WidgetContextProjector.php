@@ -8,6 +8,7 @@ use ReflectionClass;
 use ReflectionProperty;
 use Schemastud\Frame\Attributes\Widget;
 use Schemastud\Frame\Attributes\WidgetIn;
+use Schemastud\Frame\Contracts\WidgetLabel;
 use Schemastud\Frame\Strategies\WidgetContextsStrategy;
 
 /**
@@ -17,9 +18,43 @@ use Schemastud\Frame\Strategies\WidgetContextsStrategy;
  * resource node), so the two never diverge. Also owns the closed-enum + arity
  * validation, and the refusal of a property that declares its form control twice
  * (`#[Widget]` beside an ordinary edit entry), thrown as \InvalidArgumentException.
+ *
+ * Handed in, never located (frame-foundation 89): the label hook arrives by NULLABLE CONSTRUCTOR ARGUMENT, and null is
+ * {@see IdentityWidgetLabel} (the declared label, unchanged), so `new WidgetContextProjector` is a plain projector with no
+ * container. Every production consumer is GIVEN its projector: frame's provider binds the one built with the container's
+ * {@see WidgetLabel} (beam's, where beam binds one), and {@see ContextManifest} and {@see WidgetContextsStrategy} take it
+ * by constructor. Nothing in the family constructs one in place, so a projector that one day reads a registry is read
+ * the same way everywhere.
  */
 class WidgetContextProjector
 {
+    public function __construct(
+        protected ?WidgetLabel $labels = null,
+    ) {}
+
+    /**
+     * The ONE named edge where a consumer that was handed nothing obtains a projector (frame-foundation 89, decision
+     * D/O1): the container's bound projector when a container is booted (frame's provider builds it with the bound
+     * {@see WidgetLabel}), else a plain one (identity labels). Used only by the nullable defaults of {@see
+     * ContextManifest} and {@see WidgetContextsStrategy}, so `new ContextManifest` inside an app reads exactly what the
+     * container's manifest reads. The projector itself never locates anything: its label hook arrives by constructor.
+     */
+    public static function resolved(): self
+    {
+        if (function_exists('app')) {
+            try {
+                $projector = app(self::class);
+                if ($projector instanceof self) {
+                    return $projector;
+                }
+            } catch (\Throwable) {
+                // No application: the plain projector below.
+            }
+        }
+
+        return new self;
+    }
+
     /**
      * The closed seven-context enum, spanning three subject grains: per-property
      * (`edit`, `detail`, `list-column`, `row-cell`), whole-record (`list-item`) and
@@ -156,10 +191,11 @@ class WidgetContextProjector
         }
 
         // localization 10: a property context's label goes through the label hook (identity by default, so unchanged);
-        // a class-level context has no derived key and keeps its declared label.
+        // a class-level context has no derived key and keeps its declared label. 89: the hook is this projector's own,
+        // handed in by constructor (null = identity), never located.
         $label = $property === null
             ? $widgetIn->label
-            : IdentityWidgetLabel::current()->label($property, $widgetIn->context, $widgetIn->label);
+            : ($this->labels ?? new IdentityWidgetLabel)->label($property, $widgetIn->context, $widgetIn->label);
 
         if ($label !== null) {
             $entry['label'] = $label;

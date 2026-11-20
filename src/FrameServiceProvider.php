@@ -13,6 +13,7 @@ use Schemastud\Frame\Contracts\WidgetLabel;
 use Schemastud\Frame\Registry\CompositeResourceRegistry;
 use Schemastud\Frame\Registry\IdentityWidgetLabel;
 use Schemastud\Frame\Registry\InMemoryResourceRegistry;
+use Schemastud\Frame\Registry\WidgetContextProjector;
 use Schemastud\Frame\Routing\FrameRoutes;
 use Schemastud\Frame\Strategies\ReadOnlyAttributeStrategy;
 use Schemastud\Frame\Strategies\ResourceRefStrategy;
@@ -51,6 +52,11 @@ class FrameServiceProvider extends PackageServiceProvider
         // localization 10: the widget-context label hook. Identity by default, so projections are unchanged;
         // `singletonIf`, so a package above this one (splicewire/laravel-beam) that binds its own wins in either order.
         $this->app->singletonIf(WidgetLabel::class, IdentityWidgetLabel::class);
+
+        // frame-foundation 89: the ONE place a production projector is built, handed the container's label hook (beam's,
+        // where beam binds one). ContextManifest and WidgetContextsStrategy take it by constructor; `bind`, so it reads
+        // whichever WidgetLabel is bound when it is resolved.
+        $this->app->bind(WidgetContextProjector::class, static fn ($app): WidgetContextProjector => new WidgetContextProjector($app->make(WidgetLabel::class)));
     }
 
     public function packageBooted(): void

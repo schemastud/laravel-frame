@@ -35,9 +35,21 @@ use Schemastud\Frame\Registry\WidgetContextProjector;
  */
 class WidgetContextsStrategy implements SchemaStrategy
 {
+    protected WidgetContextProjector $projector;
+
+    /**
+     * frame-foundation 89: the projector is handed in by nullable constructor argument; null means {@see
+     * WidgetContextProjector::resolved()} (the container's when booted, else a plain one). laravel-data-schemas resolves a
+     * configured strategy through the container, which hands it the bound projector directly.
+     */
+    public function __construct(?WidgetContextProjector $projector = null)
+    {
+        $this->projector = $projector ?? WidgetContextProjector::resolved();
+    }
+
     public function apply(ReflectionProperty $property, array $schema, SchemaStrategyContext $context): array
     {
-        $map = (new WidgetContextProjector)->forProperty($property);
+        $map = $this->projector->forProperty($property);
 
         if (empty($map)) {
             return $schema;

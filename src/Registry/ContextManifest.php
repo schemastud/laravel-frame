@@ -33,12 +33,22 @@ use Schemastud\Frame\Contracts\ResourceContextContributor;
  * The port arrives by NULLABLE CONSTRUCTOR ARGUMENT, never by service location. `new
  * ContextManifest` keeps working everywhere it already appears, a pure-frame host binds
  * nothing and gets an unchanged block, and the class stays testable with no container.
+ *
+ * The {@see WidgetContextProjector} arrives the same way (frame-foundation 89): by nullable constructor argument. The
+ * container's manifest is given the container's projector; null means {@see WidgetContextProjector::resolved()} (the
+ * container's when one is booted, else a plain one), so `new ContextManifest` inside an app projects exactly as the
+ * container's does. This class never constructs a projector itself.
  */
 class ContextManifest
 {
+    protected WidgetContextProjector $projector;
+
     public function __construct(
         protected ?ResourceContextContributor $contributor = null,
-    ) {}
+        ?WidgetContextProjector $projector = null,
+    ) {
+        $this->projector = $projector ?? WidgetContextProjector::resolved();
+    }
 
     /**
      * @param  'single'|'subnav'|'master-detail'|null  $layout  the resource's declared inner-layout grammar, handed in from its {@see ResourceDefinition} (frame no longer reflects the producer's attribute for it)
@@ -54,7 +64,7 @@ class ContextManifest
     public function forResource(string $dataClass, ?string $layout = null, ?string $key = null, string $createAffordance = 'frame', string $singularLabel = '', array $can = [], array $actions = [], array $collections = [], array $requires = []): array
     {
         $reflection = new ReflectionClass($dataClass);
-        $projector = new WidgetContextProjector;
+        $projector = $this->projector;
 
         $byNode = [];
 

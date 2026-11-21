@@ -11,6 +11,7 @@ use Schemastud\Frame\Contracts\ResourceActionAuthorizer;
 use Schemastud\Frame\Contracts\ResourceRegistry;
 use Schemastud\Frame\Contracts\WidgetLabel;
 use Schemastud\Frame\Registry\CompositeResourceRegistry;
+use Schemastud\Frame\Registry\DeferredWidgetLabel;
 use Schemastud\Frame\Registry\IdentityWidgetLabel;
 use Schemastud\Frame\Registry\InMemoryResourceRegistry;
 use Schemastud\Frame\Registry\WidgetContextProjector;
@@ -54,9 +55,10 @@ class FrameServiceProvider extends PackageServiceProvider
         $this->app->singletonIf(WidgetLabel::class, IdentityWidgetLabel::class);
 
         // frame-foundation 89: the ONE place a production projector is built, handed the container's label hook (beam's,
-        // where beam binds one). ContextManifest and WidgetContextsStrategy take it by constructor; `bind`, so it reads
-        // whichever WidgetLabel is bound when it is resolved.
-        $this->app->bind(WidgetContextProjector::class, static fn ($app): WidgetContextProjector => new WidgetContextProjector($app->make(WidgetLabel::class)));
+        // where beam binds one). ContextManifest and WidgetContextsStrategy take it by constructor. The hook is DEFERRED
+        // (review MED 1): it resolves the bound WidgetLabel on the projector's first label() call, so building a projector
+        // (beam's contribution registry does at every boot, for a check that reads no label) builds no label chain.
+        $this->app->bind(WidgetContextProjector::class, static fn ($app): WidgetContextProjector => new WidgetContextProjector(new DeferredWidgetLabel($app)));
     }
 
     public function packageBooted(): void

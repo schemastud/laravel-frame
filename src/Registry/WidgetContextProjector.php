@@ -34,8 +34,11 @@ class WidgetContextProjector
 
     /**
      * The ONE named edge where a consumer that was handed nothing obtains a projector (frame-foundation 89, decision
-     * D/O1): the container's bound projector when a container is booted (frame's provider builds it with the bound
-     * {@see WidgetLabel}), else a plain one (identity labels). Used only by the nullable defaults of {@see
+     * D/O1): whatever the current container (`app()`) resolves for this class, else a plain one (identity labels). It
+     * does NOT check that the application is booted: once frame's provider has registered, that is the bound projector
+     * (built with a deferred handle on the bound {@see WidgetLabel}); called earlier, or in a container frame never
+     * registered in, the container autowires a plain projector. With no container at all it is a plain one. Used only by
+     * the nullable defaults of {@see
      * ContextManifest} and {@see WidgetContextsStrategy}, so `new ContextManifest` inside an app reads exactly what the
      * container's manifest reads. The projector itself never locates anything: its label hook arrives by constructor.
      */

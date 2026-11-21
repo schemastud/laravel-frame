@@ -5,6 +5,7 @@ namespace Schemastud\Frame\Tests;
 use ReflectionProperty;
 use Schemastud\Frame\Contracts\WidgetLabel;
 use Schemastud\Frame\Registry\ContextManifest;
+use Schemastud\Frame\Registry\DeferredWidgetLabel;
 use Schemastud\Frame\Registry\IdentityWidgetLabel;
 use Schemastud\Frame\Registry\WidgetContextProjector;
 use Schemastud\Frame\Strategies\WidgetContextsStrategy;
@@ -51,8 +52,34 @@ class ProjectorHandedInTest extends TestCase
 
         $projector = $this->app->make(WidgetContextProjector::class);
 
-        $this->assertSame($hook, (new ReflectionProperty($projector, 'labels'))->getValue($projector));
+        // review MED 1: the projector holds a DEFERRED handle that resolves to the container's hook
+        $labels = (new ReflectionProperty($projector, 'labels'))->getValue($projector);
+        $this->assertInstanceOf(DeferredWidgetLabel::class, $labels);
+        $this->assertSame($hook, $labels->resolve());
         $this->assertSame('<Kind>', $this->app->make(ContextManifest::class)->forResource(ColumnKindResourceData::class)['byNode']['kind']['list-column']['label']);
+    }
+
+    public function test_building_the_bound_projector_makes_no_widget_label_until_a_label_is_projected(): void
+    {
+        // review MED 1: beam builds a projector at every boot for a check that reads no label; that must build no hook
+        $made = 0;
+        $this->app->bind(WidgetLabel::class, function () use (&$made): WidgetLabel {
+            $made++;
+
+            return $this->hook();
+        });
+
+        $projector = $this->app->make(WidgetContextProjector::class);
+        $this->app->make(ContextManifest::class);
+        $this->assertSame(0, $made, 'building the projector (or a manifest holding it) must not make a WidgetLabel');
+
+        $property = new ReflectionProperty(ColumnKindResourceData::class, 'kind');
+        $projector->forClass(new \ReflectionClass(ColumnKindResourceData::class));
+        $this->assertSame(0, $made, 'class-level contexts read no label hook');
+
+        $this->assertSame('<Kind>', $projector->forProperty($property)['list-column']['label']);
+        $projector->forProperty($property);
+        $this->assertSame(1, $made, 'the first property label resolves the hook, once per projector');
     }
 
     public function test_a_projector_uses_the_hook_it_was_handed_and_identity_without_one(): void
@@ -93,7 +120,7 @@ class ProjectorHandedInTest extends TestCase
         $this->assertFalse(method_exists(IdentityWidgetLabel::class, 'current'));
     }
 
-    public function test_src_constructs_a_projector_only_in_the_provider_binding_or_a_nullable_default(): void
+    public function test_src_constructs_a_projector_only_in_the_provider_binding(): void
     {
         $sites = [];
         $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator(dirname(__DIR__).'/src', \FilesystemIterator::SKIP_DOTS));
@@ -106,8 +133,9 @@ class ProjectorHandedInTest extends TestCase
                 if (preg_match('/^\s*(\*|\/\/)/', $line) || ! preg_match('/new\s+\\\\?(?:[A-Za-z]+\\\\)*WidgetContextProjector\b/', $line)) {
                     continue;
                 }
-                $allowed = str_contains($line, '?? new WidgetContextProjector')
-                    || ($file->getFilename() === 'FrameServiceProvider.php' && str_contains($line, '$app->make(WidgetLabel::class)'));
+                // review LOW 3: the provider's binding is the ONLY allowed site (frame's nullable defaults call resolved());
+                // a later `?? new WidgetContextProjector` anywhere in frame's src/ fails here
+                $allowed = $file->getFilename() === 'FrameServiceProvider.php' && str_contains($line, 'new WidgetContextProjector(new DeferredWidgetLabel($app))');
                 if (! $allowed) {
                     $sites[] = $file->getFilename().':'.($n + 1).': '.trim($line);
                 }

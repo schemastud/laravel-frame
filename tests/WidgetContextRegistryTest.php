@@ -2,6 +2,8 @@
 
 namespace Schemastud\Frame\Tests;
 
+use Illuminate\Container\Container;
+use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Artisan;
 use InvalidArgumentException;
 use ReflectionClass;
@@ -180,6 +182,51 @@ class WidgetContextRegistryTest extends TestCase
     {
         $projector = new WidgetContextProjector;
         $this->assertSame(self::SEVEN, $projector->known());
+    }
+
+    /** Review finding 1: a registry HANDED to a projector is edge-checked on its first read too. */
+    public function test_an_injected_bad_registry_is_refused_on_the_projectors_first_read(): void
+    {
+        $cases = [
+            'missing fallback' => [new WidgetContext('board-card', ContextGrain::Record, fallback: ['tile']), 'falls back to [tile], which is not registered'],
+            'collection-grain fallback' => [new WidgetContext('board-card', ContextGrain::Record, fallback: ['summary']), '(record grain) falls back to [summary] (collection grain)'],
+        ];
+
+        foreach ([false, true] as $noContainer) {
+            foreach ($cases as $case => [$context, $message]) {
+                $bad = (new WidgetContextRegistry)->register($context, by: 'acme/a');
+                $previous = Container::getInstance();
+                if ($noContainer) {
+                    Container::setInstance(new Container);  // a plain container: no application, so no post-boot pass
+                }
+                try {
+                    (new WidgetContextProjector(null, $bad))->known();
+                    $this->fail("{$case}: no refusal on first read".($noContainer ? ' (no application)' : ''));
+                } catch (InvalidArgumentException $e) {
+                    $this->assertStringContainsString($message, $e->getMessage(), $case);
+                } finally {
+                    Container::setInstance($previous);
+                }
+            }
+        }
+    }
+
+    public function test_a_projector_read_while_an_application_boots_leaves_the_edges_to_the_post_boot_pass(): void
+    {
+        $bad = (new WidgetContextRegistry)->register(new WidgetContext('board-card', ContextGrain::Record, fallback: ['tile']), by: 'acme/a');
+        $previous = Container::getInstance();
+        Container::setInstance(new Application(sys_get_temp_dir()));   // not booted: a package may still register [tile]
+        try {
+            $projector = new WidgetContextProjector(null, $bad);
+            $this->assertContains('board-card', $projector->known());
+
+            // Once a projector reads outside a booting application, it checks.
+            Container::setInstance($previous);
+            $this->expectExceptionMessage('falls back to [tile], which is not registered');
+            $projector->known();
+        } finally {
+            Container::setInstance($previous);
+        }
     }
 
     public function test_a_record_grain_host_context_falling_back_to_list_item_projects_at_class_level(): void

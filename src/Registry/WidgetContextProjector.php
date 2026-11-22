@@ -30,19 +30,20 @@ class WidgetContextProjector
 {
     /**
      * The render contexts it projects (frame-foundation 90): frame's `frame.contexts` registry, handed in like the label
-     * hook. Null means a registry of its own (frame's seven), whose edges are checked on the first read, since no
-     * container runs frame's post-boot check for it.
+     * hook; null means a registry of its own (frame's seven). Whichever it holds, its edges are checked on this
+     * projector's first read (review finding 1: an injected registry with no container has no post-boot pass either),
+     * unless a Laravel application is still booting, where a package may yet register a fallback target and frame's
+     * provider runs the check once boot is done. A check after boot repeats that pass's answer.
      */
     protected WidgetContextRegistry $contexts;
 
-    private bool $edgesPending;
+    private bool $edgesPending = true;
 
     public function __construct(
         protected ?WidgetLabel $labels = null,
         ?WidgetContextRegistry $contexts = null,
     ) {
         $this->contexts = $contexts ?? new WidgetContextRegistry;
-        $this->edgesPending = $contexts === null;
     }
 
     /**
@@ -94,15 +95,31 @@ class WidgetContextProjector
         return $this->registry()->inherits();
     }
 
-    /** The registry, with its edges checked on the first read when this projector built it itself. */
+    /** The registry, with its edges checked on this projector's first read outside an application still booting. */
     private function registry(): WidgetContextRegistry
     {
-        if ($this->edgesPending) {
+        if ($this->edgesPending && ! self::applicationBooting()) {
             $this->edgesPending = false;
             $this->contexts->assertEdges();
         }
 
         return $this->contexts;
+    }
+
+    /** True only inside a Laravel application whose providers have not all booted; no container is never booting. */
+    private static function applicationBooting(): bool
+    {
+        if (! function_exists('app')) {
+            return false;
+        }
+
+        try {
+            $app = app();
+        } catch (\Throwable) {
+            return false;
+        }
+
+        return $app instanceof \Illuminate\Contracts\Foundation\Application && ! $app->isBooted();
     }
 
     /**

@@ -5,8 +5,14 @@ namespace Schemastud\Frame\Contracts;
 use Schemastud\Frame\Registry\ContextManifest;
 
 /**
- * An OPTIONAL plug port: something outside frame may add render-context participation to a
+ * A CONTEXT CONTRIBUTOR: something outside frame may add render-context participation to a
  * resource's context block, keyed by the resource's registry KEY.
+ *
+ * frame-foundation 93 (ADR-0011): a contributor is REGISTERED UNDER A KEY in frame's
+ * {@see \Schemastud\Frame\Registry\ContextContributorRegistry} (`frame.context-contributors`), as a factory that
+ * resolves the registering package's own scoped binding per call; nothing binds this interface as a port, and nothing
+ * decorates one. The registry folds every contributor in position order (a later position wins a shared context) and
+ * the resource's own declaration wins over all.
  *
  * ## What frame learns, and what it deliberately does not
  *
@@ -30,10 +36,10 @@ use Schemastud\Frame\Registry\ContextManifest;
  * whose result frame consumes, merging it into the block it already builds. Nothing here is
  * carried on frame's behalf for someone else to read, which is the shape ADR-0001 forbids.
  *
- * ## Unbound is the normal case
+ * ## Nothing registered is the normal case
  *
- * A pure-frame host binds nothing and gets an unchanged manifest by construction: the port
- * arrives as a nullable constructor argument on {@see ContextManifest}, never by service
+ * A pure-frame host registers nothing and gets an unchanged manifest by construction: the
+ * registry arrives as a nullable constructor argument on {@see ContextManifest}, never by service
  * location, so the class stays constructible with `new` and testable without a container.
  */
 interface ResourceContextContributor

@@ -26,10 +26,10 @@ use Spatie\LaravelData\Optional;
  * `x-stud-widget-contexts` keyword is not for a client: its one reader is server-side,
  * laravel-beam's `CollectionResourceContextNodes`.
  *
- * {@see ContextManifest} is RESOLVED rather than `new`'d so its optional
- * {@see \Schemastud\Frame\Contracts\ResourceContextContributor} plug is picked up where a
- * consumer binds one. In a pure-frame host nothing binds it, the nullable constructor
- * argument resolves to null, and every block here is byte-identical to before.
+ * {@see ContextManifest} is RESOLVED rather than `new`'d so it is handed frame's
+ * {@see \Schemastud\Frame\Registry\ContextContributorRegistry}, where each context contributor is registered under a
+ * key (frame-foundation 93). In a pure-frame host nothing is registered, and every block here is byte-identical to
+ * before.
  *
  * {@see NavManifest} is the same idiom one key over, and it closes a measured gap: `nav` and
  * `routeContext` were emitted by exactly ONE host in the estate, which got them by hand-writing a

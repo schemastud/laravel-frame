@@ -14,6 +14,7 @@ use Schemastud\Frame\Contracts\ResourceAccessGate;
 use Schemastud\Frame\Contracts\ResourceContextContributor;
 use Schemastud\Frame\Contracts\ResourceRegistry;
 use Schemastud\Frame\Http\Controllers\FrameManifestController;
+use Schemastud\Frame\Registry\ContextContributorRegistry;
 use Schemastud\Frame\Registry\InMemoryResourceRegistry;
 use Schemastud\Frame\Registry\NavMetadata;
 use Schemastud\Frame\Registry\ResourceDefinition;
@@ -139,7 +140,7 @@ class ResourceAccessGateTest extends TestCase
                 return [];
             }
         };
-        $this->app->instance(ResourceContextContributor::class, $contributor);
+        $this->app->make(ContextContributorRegistry::class)->register('test.gate-probe', static fn (): ResourceContextContributor => $contributor, by: 'test');
         $authorizer = new class($this->app->make(Gate::class), $this->app->make(ResourceAccessGate::class)) extends ResourceAuthorizer
         {
             /** @var list<string> */

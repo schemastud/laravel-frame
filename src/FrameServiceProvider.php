@@ -11,6 +11,7 @@ use Schemastud\Frame\Contracts\ResourceActionAuthorizer;
 use Schemastud\Frame\Contracts\ResourceRegistry;
 use Schemastud\Frame\Contracts\WidgetLabel;
 use Schemastud\Frame\Registry\CompositeResourceRegistry;
+use Schemastud\Frame\Registry\ContextContributorRegistry;
 use Schemastud\Frame\Registry\DeferredWidgetLabel;
 use Schemastud\Frame\Registry\IdentityWidgetLabel;
 use Schemastud\Frame\Registry\InMemoryResourceRegistry;
@@ -69,6 +70,12 @@ class FrameServiceProvider extends PackageServiceProvider
         $this->app->booted(static function ($app): void {
             $app->make(WidgetContextRegistry::class)->assertEdges();
         });
+
+        // frame-foundation 93: the context contributors are frame's `frame.context-contributors` registry, ONE per
+        // container, filled by packages from their providers' boot() (a factory per package key, resolving that
+        // package's own scoped contributor per call). The container-resolved ContextManifest is handed it by
+        // autowiring; nothing binds the ResourceContextContributor port any more.
+        $this->app->singleton(ContextContributorRegistry::class);
     }
 
     public function packageBooted(): void

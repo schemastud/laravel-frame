@@ -23,6 +23,6 @@ class RegistryDocsAdoptionTest extends TestCase
         $this->assertSame([], $report->failures(), $report->summary());
         $coverage = array_keys($report->coverage);
         sort($coverage);
-        $this->assertSame(['frame.contexts', 'frame.resources'], $coverage);
+        $this->assertSame(['frame.context-contributors', 'frame.contexts', 'frame.resources'], $coverage);
     }
 }

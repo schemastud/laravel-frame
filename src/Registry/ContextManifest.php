@@ -26,12 +26,12 @@ use Schemastud\Frame\Contracts\ResourceContextContributor;
  *
  * `forResource()` reflects exactly ONE Data class, and one Data class may serve more than one
  * resource key — so a producer that adds participation per RESOURCE cannot express it through
- * the class alone. That mismatch is why the optional {@see ResourceContextContributor} port
- * exists and why `forResource()` takes the resource `$key` alongside its Data class: the
- * reflection half stays class-keyed, the plug half is key-keyed, and the two merge here
- * (particle-contribution-seam ticket 17 §A1/§A2).
+ * the class alone. That mismatch is why context contributors exist (each a {@see ResourceContextContributor}
+ * registered under a key in {@see ContextContributorRegistry}, frame-foundation 93) and why `forResource()` takes the
+ * resource `$key` alongside its Data class: the reflection half stays class-keyed, the contributed half is key-keyed,
+ * and the two merge here (particle-contribution-seam ticket 17 §A1/§A2).
  *
- * The port arrives by NULLABLE CONSTRUCTOR ARGUMENT, never by service location. `new
+ * The registry arrives by NULLABLE CONSTRUCTOR ARGUMENT, never by service location. `new
  * ContextManifest` keeps working everywhere it already appears, a pure-frame host binds
  * nothing and gets an unchanged block, and the class stays testable with no container.
  *
@@ -45,7 +45,7 @@ class ContextManifest
     protected WidgetContextProjector $projector;
 
     public function __construct(
-        protected ?ResourceContextContributor $contributor = null,
+        protected ?ContextContributorRegistry $contributors = null,
         ?WidgetContextProjector $projector = null,
     ) {
         $this->projector = $projector ?? WidgetContextProjector::resolved();
@@ -53,7 +53,7 @@ class ContextManifest
 
     /**
      * @param  'single'|'subnav'|'master-detail'|null  $layout  the resource's declared inner-layout grammar, handed in from its {@see ResourceDefinition} (frame no longer reflects the producer's attribute for it)
-     * @param  string|null  $key  the resource's registry key, for the {@see ResourceContextContributor} plug. Null (or no bound port) ⇒ reflection only, which is every pure-frame host.
+     * @param  string|null  $key  the resource's registry key, for the {@see ContextContributorRegistry}'s contributors. Null (or no registry, or nothing registered) ⇒ reflection only, which is every pure-frame host.
      * @param  'frame'|'host'  $createAffordance  the RESOLVED create affordance, handed in from the resource's {@see ResourceDefinition::resolvedCreateAffordance()}. It rides this block rather than the definition for the same reason `$layout` does: a frame shell is handed its ContextManifest and never the definition, so a presentation fact the shell must read has to arrive here. Defaults to `'frame'` — today's behaviour — so every existing caller of this method emits an unchanged block.
      * @param  string  $singularLabel  the RESOLVED display singular, handed in from {@see ResourceDefinition::resolvedSingularLabel()}. It rides this block for the same reason `$layout` and `$createAffordance` do: a frame shell is handed its ContextManifest and never the definition, so a presentation fact the shell must read has to arrive here. Empty (the default) ⇒ the shell falls back to the resource KEY, i.e. today's behaviour, so every existing caller of this method emits an unchanged block.
      * @param  array{create?: bool, update?: bool, delete?: bool}  $can  the CURRENT ACTOR's class-level write capabilities, from {@see \Schemastud\Frame\Authorization\ResourceAuthorizer::capabilities()}. It rides this block for the same reason the three above do — the shell never sees the definition — and it is the axis the shell has never had. `createAffordance`/`creatable`/`deletable`/`editable` describe the RESOURCE ("may this be created at all", "whose chrome owns the button"); this describes the ACTOR, and the two are deliberately NOT collapsed: a resource can be perfectly `creatable` and un-creatable BY YOU. A shell renders a create affordance when `createAffordance === 'frame' && can.create` — two fields answering two different questions, not two spellings of one. **Empty (the default) ⇒ no actor axis was resolved and the shell falls back to the resource flags alone**, i.e. today's behaviour, so every existing caller of this method emits an unchanged block. That default is permissive by design: this map exists to stop offering buttons that cannot work, and the endpoint — not this — is what refuses the write ({@see \Schemastud\Frame\Http\Controllers\FrameResourceController}).
@@ -96,8 +96,11 @@ class ContextManifest
         // The priority is now per-CONTEXT at EVERY pointer, not only at the root: reflection
         // wins each shared context key, where the earlier pointer-level merge let a contributed
         // pointer replace a reflected one wholesale.
-        if ($this->contributor !== null && $key !== null) {
-            foreach ($this->contributor->nodesFor($key) as $pointer => $contributed) {
+        // frame-foundation 93: the contributed half is the registry's fold over every registered contributor (position
+        // order, a later position winning a shared context); reflection still wins each context here. A null key calls
+        // no factory.
+        if ($this->contributors !== null && $key !== null) {
+            foreach ($this->contributors->nodesFor($key) as $pointer => $contributed) {
                 $byNode[$pointer] = array_merge($contributed, $byNode[$pointer] ?? []);
             }
         }

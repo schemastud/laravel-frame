@@ -1,0 +1,84 @@
+---
+title: Frame context contributors
+segment: frame.context-contributors
+nav_order: 41
+excerpt: Each package's source of extra render-context nodes for a resource, registered under a key and folded in position order.
+---
+
+# Frame context contributors
+
+A **context contributor** is a package's source of extra render-context nodes for a resource: the `byNode` entries a
+resource's own Data class cannot declare (a contributed slice's list column, a Collection's schema fields, a board
+card's own widget). Each one is a `ResourceContextContributor` (`nodesFor(string $key): array`, pointer => context =>
+map), **registered under a key** in `frame.context-contributors`. It adds; the resource's own declaration always wins.
+
+`frame.context-contributors` holds one **factory** per key, `Closure(): ResourceContextContributor`. `ContextManifest`
+asks the registry for a resource key's nodes, and the registry calls every factory, in position order, on every read.
+
+{/* registry-facts:start — generated from the #[IsRegistry] declaration; regenerate it, do not edit between these markers. */}
+
+- **Root:** `frame.context-contributors`
+- **Entries:** `Closure`
+- **Duplicate keys:** Supersede — a later registration under a taken key replaces the earlier entry, in its place
+- **Population:** Optional — an empty registry is normal
+- **Order:** `100` (display order, ascending)
+- **Declared by:** `Schemastud\Frame\Registry\ContextContributorRegistry`
+
+{/* registry-facts:end */}
+
+<RegistryRegistrants root="frame.context-contributors" />
+
+## The order
+
+The registry declares two rungs, outermost first: `declared` › `contributed`. The rungs are for a reader; the climb
+is in code:
+
+1. Every factory is called in **position** order and its contributor's nodes are folded per pointer: a **later
+   position wins** a context two contributors name at the same pointer, whole (no merge inside an entry).
+2. The resource's own reflected declaration then wins each context it names, at every pointer.
+
+Position is registration order, which is provider boot order. On a beam-exec host:
+
+| Position | Key | Registrant | Answers |
+|---|---|---|---|
+| 1 | `beam.contributions` | `splicewire/laravel-beam` | a contributed slice's `as.prop` pointers |
+| 2 | `beam.collections` | `splicewire/laravel-beam` | the selected Collection's `fields.*` pointers (`records` only) |
+| 3 | `beam-exec.board-cards` | `splicewire/laravel-beam-exec` | a card's root (`""`) contexts (`exec-*` only) |
+
+Read the live order and the registrants with `php artisan popcorn:keys frame.context-contributors`.
+
+## Registering a contributor
+
+Unlike the resource registry port (ADR-0008), `frame.context-contributors` **is** an extension point (ADR-0011).
+Keep your contributor as your package's **own `scoped()` binding**, and register a factory that resolves it, from
+your provider's `boot()`:
+
+```php
+// register()
+$this->app->scoped(AcmeContextNodes::class, fn ($app) => new AcmeContextNodes($app->make(Request::class)));
+
+// boot()
+app(ContextContributorRegistry::class)->register(
+    'acme.nodes',
+    static fn (): ResourceContextContributor => app(AcmeContextNodes::class),
+    by: 'acme/laravel-acme',
+);
+```
+
+- **Register under your own key.** Its first segment is your package's short name.
+- **Resolve per call; capture nothing at boot.** A contributor may read the request, so the factory must resolve your
+  scoped binding through the current container when it is called. A factory that captures a boot-time `$this->app`
+  (or any instance) would serve one request's state to another under Octane. (A test proves the factory runs after a
+  scope reset; the Octane sandbox itself is not proven.)
+- **Replacing** a package's contributor: register under its key (`Supersede`). The replacement answers from the
+  replaced entry's slot. `php artisan popcorn:keys frame.context-contributors --supersessions` shows what you replaced.
+- **A new key** registered by a host answers after every package contributor, so it wins a shared context.
+
+Nothing binds the `ResourceContextContributor` port any more; there is no second way to contribute.
+
+## What would miss
+
+- Position follows provider boot order, which is the alphabetical order of discovered packages. A package installed
+  later whose name sorts after `laravel-beam` silently beats beam's contributors on a shared (pointer, context), and a
+  host that lists providers by hand changes the order. Both are visible in `popcorn:keys`; correct either by
+  superseding.

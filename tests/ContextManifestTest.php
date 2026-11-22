@@ -7,6 +7,7 @@ use Schemastud\Frame\Attributes\Overview;
 use Schemastud\Frame\Attributes\Summary;
 use Schemastud\Frame\Attributes\WidgetIn;
 use Schemastud\Frame\Contracts\ResourceContextContributor;
+use Schemastud\Frame\Registry\ContextContributorRegistry;
 use Schemastud\Frame\Registry\ContextManifest;
 use Schemastud\Frame\Tests\Fixtures\BadClassContextData;
 use Schemastud\Frame\Tests\Fixtures\ContactResourceData;
@@ -198,7 +199,7 @@ class ContextManifestTest extends TestCase
 
     public function test_a_contributor_with_no_nodes_for_the_key_leaves_the_block_untouched(): void
     {
-        $manifest = new ContextManifest($this->contributor(['orders' => ['x.y' => []]]));
+        $manifest = new ContextManifest($this->contributors(['orders' => ['x.y' => []]]));
 
         $this->assertSame(
             (new ContextManifest)->forResource(ContactResourceData::class),
@@ -210,7 +211,7 @@ class ContextManifestTest extends TestCase
     {
         $entry = ['list-column' => ['participates' => true, 'label' => 'Plan', 'sort' => 10]];
 
-        $byNode = (new ContextManifest($this->contributor(['contacts' => ['commerce.plan' => $entry]])))
+        $byNode = (new ContextManifest($this->contributors(['contacts' => ['commerce.plan' => $entry]])))
             ->forResource(ContactResourceData::class, null, 'contacts')['byNode'];
 
         $this->assertSame($entry, $byNode['commerce.plan']);
@@ -218,7 +219,7 @@ class ContextManifestTest extends TestCase
 
     public function test_the_key_is_required_for_the_plug_to_fire(): void
     {
-        $manifest = new ContextManifest($this->contributor(['contacts' => ['commerce.plan' => ['x' => []]]]));
+        $manifest = new ContextManifest($this->contributors(['contacts' => ['commerce.plan' => ['x' => []]]]));
 
         $this->assertArrayNotHasKey('commerce.plan', $manifest->forResource(ContactResourceData::class)['byNode']);
     }
@@ -227,7 +228,7 @@ class ContextManifestTest extends TestCase
     {
         $reflected = (new ContextManifest)->forResource(ContactResourceData::class)['byNode'];
 
-        $byNode = (new ContextManifest($this->contributor(['contacts' => ['commerce.plan' => ['x' => []]]])))
+        $byNode = (new ContextManifest($this->contributors(['contacts' => ['commerce.plan' => ['x' => []]]])))
             ->forResource(ContactResourceData::class, null, 'contacts')['byNode'];
 
         foreach ($reflected as $pointer => $map) {
@@ -246,7 +247,7 @@ class ContextManifestTest extends TestCase
             'summary' => ['participates' => true, 'widget' => 'stat-row'],
         ];
 
-        $root = (new ContextManifest($this->contributor(['contacts' => ['' => $contributed]])))
+        $root = (new ContextManifest($this->contributors(['contacts' => ['' => $contributed]])))
             ->forResource(ContactResourceData::class, null, 'contacts')['byNode'][''];
 
         $this->assertSame(['participates' => true, 'widget' => 'contact-card'], $root['list-item']);
@@ -260,7 +261,7 @@ class ContextManifestTest extends TestCase
             'detail' => ['participates' => true, 'widget' => 'contributed-detail'],
         ];
 
-        $email = (new ContextManifest($this->contributor(['contacts' => ['email' => $contributed]])))
+        $email = (new ContextManifest($this->contributors(['contacts' => ['email' => $contributed]])))
             ->forResource(ContactResourceData::class, null, 'contacts')['byNode']['email'];
 
         $this->assertSame('email-input', $email['edit']['widget']);
@@ -268,10 +269,14 @@ class ContextManifestTest extends TestCase
         $this->assertTrue($email['row-cell']['participates']);
     }
 
-    /** @param  array<string, array<string, array<string, mixed>>>  $nodes */
-    private function contributor(array $nodes): ResourceContextContributor
+    /**
+     * frame-foundation 93: one fixture contributor, registered under a key in a fresh contributor registry.
+     *
+     * @param  array<string, array<string, array<string, mixed>>>  $nodes
+     */
+    private function contributors(array $nodes): ContextContributorRegistry
     {
-        return new class($nodes) implements ResourceContextContributor
+        $contributor = new class($nodes) implements ResourceContextContributor
         {
             public function __construct(private array $nodes) {}
 
@@ -280,5 +285,7 @@ class ContextManifestTest extends TestCase
                 return $this->nodes[$key] ?? [];
             }
         };
+
+        return (new ContextContributorRegistry)->register('test.contributor', static fn (): ResourceContextContributor => $contributor, by: 'test');
     }
 }

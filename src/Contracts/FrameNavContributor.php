@@ -32,7 +32,8 @@ use Schemastud\Frame\Registry\RouteContextEntry;
  * *A field on frame's contract must be read by frame, or by frame's own plug seam.* This adds no
  * field to {@see \Schemastud\Frame\Registry\ResourceDefinition}. It is a METHOD frame calls and
  * whose result frame merges into the payload it already emits — the same shape as
- * {@see ResourceContextContributor}, which the same ADR's reasoning already licensed.
+ * {@see ResourceContextContributor} (which is registered under a key in frame's context-contributor registry,
+ * ADR-0011), which the same ADR's reasoning already licensed.
  *
  * ## Unbound is the normal case, and declining is the second normal case
  *

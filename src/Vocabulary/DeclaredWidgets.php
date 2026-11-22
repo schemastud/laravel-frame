@@ -12,7 +12,7 @@ use Throwable;
  * Walks one {@see ResourceDefinition} and lists every widget name it declares (ticket 05, ruling 1), reading what frame
  * would serve rather than reflecting frame's attributes: the write schema and the read schema (through the schema
  * endpoint's own {@see ResourceSchemas}), each declared action's input schema, and the context block
- * ({@see ContextManifest}, with the host's contributor when one is bound). A projection that throws is a
+ * ({@see ContextManifest}, with every context contributor registered under a key). A projection that throws is a
  * {@see ProjectionFailure} in the result; the walk never rethrows.
  *
  * Which context a name is checked in (ruling 1): a node's `x-widget` on the write schema or an action input is

@@ -28,9 +28,15 @@ final class DeferredWidgetLabel implements WidgetLabel
         return $this->resolve()->label($property, $context, $declared);
     }
 
-    /** The container's bound WidgetLabel (identity where frame's own default is all that is bound). */
+    /**
+     * The container's bound WidgetLabel, or frame's identity default where nothing is bound (a host or test that unbinds
+     * it): the same answer the removed IdentityWidgetLabel::current() locator gave, so an unbound hook still projects
+     * byte-identically instead of throwing (WidgetLabelHookTest).
+     */
     public function resolve(): WidgetLabel
     {
-        return $this->resolved ??= $this->container->make(WidgetLabel::class);
+        return $this->resolved ??= $this->container->bound(WidgetLabel::class)
+            ? $this->container->make(WidgetLabel::class)
+            : new IdentityWidgetLabel;
     }
 }

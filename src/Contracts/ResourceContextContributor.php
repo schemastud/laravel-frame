@@ -10,8 +10,8 @@ use Schemastud\Frame\Registry\ContextManifest;
  *
  * frame-foundation 93 (ADR-0011): a contributor is REGISTERED UNDER A KEY in frame's
  * {@see \Schemastud\Frame\Registry\ContextContributorRegistry} (`frame.context-contributors`), as a factory that
- * resolves the registering package's own scoped binding per call; nothing binds this interface as a port, and nothing
- * decorates one. The registry folds every contributor in position order (a later position wins a shared context) and
+ * resolves the registering package's own scoped binding per call. Registering under a key is the one way to contribute,
+ * and each contributor answers only its own nodes. The registry folds every contributor in position order (a later position wins a shared context) and
  * the resource's own declaration wins over all.
  *
  * ## What frame learns, and what it deliberately does not

@@ -74,7 +74,7 @@ class FrameServiceProvider extends PackageServiceProvider
         // frame-foundation 93: the context contributors are frame's `frame.context-contributors` registry, ONE per
         // container, filled by packages from their providers' boot() (a factory per package key, resolving that
         // package's own scoped contributor per call). The container-resolved ContextManifest is handed it by
-        // autowiring; nothing binds the ResourceContextContributor port any more.
+        // autowiring; every contributor is registered under a key there.
         $this->app->singleton(ContextContributorRegistry::class);
     }
 

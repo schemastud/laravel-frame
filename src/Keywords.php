@@ -32,9 +32,10 @@ class Keywords
 
     /**
      * The per-context widget map projected from the `#[WidgetIn]` family — one
-     * property's `{context => entry}` participation across the per-property half of
-     * the closed seven-context enum (edit|detail|list-column|row-cell); the class-only
-     * contexts (list-item, summary, overview) ride the ContextManifest root instead.
+     * property's `{context => entry}` participation across the property-grain contexts
+     * of the `frame.contexts` registry (frame's edit|detail|list-column|row-cell, plus any
+     * a package registers; frame-foundation 90); the record- and collection-grain
+     * contexts (frame's list-item, summary, overview) ride the ContextManifest root instead.
      * Its one reader is server-side: laravel-beam's `CollectionResourceContextNodes`. A
      * client reads the manifest's `byNode`, never this keyword.
      */

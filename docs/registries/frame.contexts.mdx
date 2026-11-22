@@ -1,0 +1,66 @@
+---
+title: Frame render contexts
+segment: frame.contexts
+nav_order: 40
+excerpt: The render contexts Frame projects: frame's seven, plus any a package or host registers or supersedes.
+---
+
+# Frame render contexts
+
+A **render context** is a named way of drawing a property, a record or a collection: `edit` draws a form control,
+`list-column` a table cell, `list-item` a whole record as a card, `summary` a whole collection as figures. A
+`#[WidgetIn('<context>', …)]` declaration binds a widget in one context, and Frame projects those bindings into each
+resource's context block (`byNode`, `known`, `inherits`) and into the `x-stud-widget-contexts` schema keyword.
+
+`frame.contexts` is where those contexts are declared. Each entry is a `WidgetContext`: its **name** (one key
+segment), its **grain** (`property`, `record` or `collection`: the subject it draws), its **fallback** (the
+contexts whose binding it borrows when it binds none, one step) and its **reserved** names (widget names a
+property-grain context admits at the class level; Frame's `list-column` reserves `row-actions`).
+
+{/* registry-facts:start — generated from the #[IsRegistry] declaration; regenerate it, do not edit between these markers. */}
+
+- **Root:** `frame.contexts`
+- **Entries:** `Schemastud\Frame\Registry\WidgetContext`
+- **Duplicate keys:** Supersede — a later registration under a taken key replaces the earlier entry, in its place
+- **Population:** Required — an empty registry is reported as unpopulated
+- **Order:** `100` (display order, ascending)
+- **Declared by:** `Schemastud\Frame\Registry\WidgetContextRegistry`
+
+{/* registry-facts:end */}
+
+<RegistryRegistrants root="frame.contexts" />
+
+## What ships
+
+Frame seeds its seven contexts in the registry's constructor, as `schemastud/laravel-frame`, in this order (the
+block's `known`):
+
+| Context | Grain | Falls back to | Reserved |
+|---|---|---|---|
+| `edit` | property | | |
+| `detail` | property | | |
+| `list-column` | property | | `row-actions` |
+| `list-item` | record | | |
+| `row-cell` | property | `edit` | |
+| `summary` | collection | | |
+| `overview` | collection | `summary` | |
+
+A host that registers nothing serves exactly these, and its manifest is unchanged.
+
+## Registering a context
+
+Unlike the resource registry port (ADR-0008), `frame.contexts` **is** an extension point. Register from your
+provider's `boot()`, never `register()`:
+
+```php
+app(WidgetContextRegistry::class)->register(new WidgetContext('board-card', ContextGrain::Record, fallback: ['list-item']));
+```
+
+- **Superseding** one of Frame's contexts keeps its place in `known`, and must keep its grain.
+- **Registration refuses** a name that is not one key segment, a fallback naming the context itself, any fallback on
+  `edit`, a supersession that changes grain (naming both registrants), and `reserved` on a non-property grain.
+- **After boot**, once, Frame checks every fallback names a registered context of the same grain, so provider order
+  never matters. There is no `forget`: a context is replaced, never removed.
+- Then run the doctor, which compares this registry with the host's committed widget vocabulary.
+
+The decision is laravel-frame ADR-0010 (frame-foundation 86).

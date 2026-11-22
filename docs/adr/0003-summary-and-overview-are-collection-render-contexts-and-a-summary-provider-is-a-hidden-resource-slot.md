@@ -1,6 +1,6 @@
 # ADR-0003 — `summary` and `overview` are COLLECTION render contexts, and a summary provider is a hidden resource slot
 
-**Status:** accepted
+**Status:** accepted; decision 2's "hardcoded on both sides" superseded by ADR-0010 (render contexts are registry entries, frame-foundation 86)
 **Date:** 2026-09-14
 **Repo:** `schemastud/laravel-frame`
 **Wayfinding:** `.scratch/splicewire/splicewire-ecosystem/realm-dashboards/` PRD ("The axis question, answered",

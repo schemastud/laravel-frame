@@ -141,8 +141,8 @@ final class EmittedWireKeys
             ],
             self::GroupContextBlock => [
                 'byNode' => self::Frame,                          // resolveWidgetFor.ts, rowActions.ts, RecordPicker.tsx
-                'inherits' => self::frameConstant('inherits', 'INHERITS'),
-                'known' => self::frameConstant('known', 'its context list'),
+                'inherits' => self::contextRegistry('inherits'),
+                'known' => self::contextRegistry('known'),
                 'layout' => [
                     'reader' => self::ReaderUnread,
                     'reason' => "the FrameLayout socket's variant token (ticket 31); declared in frame's contexts.ts, read by no executable code in frame or the chrome (census 2026-11-10)",
@@ -231,12 +231,18 @@ final class EmittedWireKeys
         ];
     }
 
-    /** @return array{reader: string, reason: string} */
-    private static function frameConstant(string $key, string $constant): array
+    /**
+     * `known` and `inherits` (frame-foundation 90): written from frame's context registry (`frame.contexts`), and still
+     * unread (decision 05): the client resolves with the contexts its own kit declares (resolveWidgetFor.ts:69), not
+     * this key.
+     *
+     * @return array{reader: string, reason: string}
+     */
+    private static function contextRegistry(string $key): array
     {
         return [
             'reader' => self::ReaderUnread,
-            'reason' => "frame resolves with {$constant} of its own (resolveWidgetFor.ts:69), not this {$key}; declared in contexts.ts, read by no executable code (census 2026-11-10)",
+            'reason' => "written from frame's context registry (frame.contexts); the client resolves with its own kit's contexts (resolveWidgetFor.ts:69), not this {$key}; declared in contexts.ts, read by no executable code (census 2026-11-10)",
         ];
     }
 }

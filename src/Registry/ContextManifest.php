@@ -11,9 +11,10 @@ use Schemastud\Frame\Contracts\ResourceContextContributor;
  * Top-level-resource-scoped: only the root and its DIRECT properties carry the
  * keyword; nested sub-DTOs are NOT recursed.
  *
- *  - `known`    the closed seven-context enum.
- *  - `inherits` static inheritance edges (`row-cell` falls back to `edit`; `overview`
- *               falls back to `summary`).
+ *  - `known`    every registered render context, in registration order ({@see WidgetContextRegistry}: frame's
+ *               seven, plus any a package or host registers).
+ *  - `inherits` each context's fallback edges, in registration order (frame's two: `row-cell` falls back to
+ *               `edit`; `overview` falls back to `summary`).
  *  - `byNode`   pointer => `{context => entry}`; key "" is the root, carrying every
  *               class-level declaration (`list-item`, `summary`, `overview`, and the
  *               `#[RowActions]` list-column), each property name its per-context map.
@@ -103,8 +104,10 @@ class ContextManifest
 
         return [
             'byNode' => $byNode,
-            'inherits' => ['row-cell' => ['edit'], 'overview' => ['summary']],
-            'known' => WidgetContextProjector::KnownContexts,
+            // frame-foundation 90: both from frame's `frame.contexts` registry, read through the projector this builder
+            // was handed (89), in registration order. A host that registers nothing gets frame's seven and two edges.
+            'inherits' => $projector->inherits(),
+            'known' => $projector->known(),
             // The resource's declared inner-layout grammar (ticket 31) — the FrameLayout
             // socket's `variant` token. Handed in from the resource's ResourceDefinition
             // (the producer read it off its own declaration); frame no longer reflects a

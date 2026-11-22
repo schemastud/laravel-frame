@@ -28,9 +28,22 @@ use Schemastud\Frame\Strategies\WidgetContextsStrategy;
  */
 class WidgetContextProjector
 {
+    /**
+     * The render contexts it projects (frame-foundation 90): frame's `frame.contexts` registry, handed in like the label
+     * hook. Null means a registry of its own (frame's seven), whose edges are checked on the first read, since no
+     * container runs frame's post-boot check for it.
+     */
+    protected WidgetContextRegistry $contexts;
+
+    private bool $edgesPending;
+
     public function __construct(
         protected ?WidgetLabel $labels = null,
-    ) {}
+        ?WidgetContextRegistry $contexts = null,
+    ) {
+        $this->contexts = $contexts ?? new WidgetContextRegistry;
+        $this->edgesPending = $contexts === null;
+    }
 
     /**
      * The ONE named edge where a consumer that was handed nothing obtains a projector (frame-foundation 89, decision
@@ -59,25 +72,38 @@ class WidgetContextProjector
     }
 
     /**
-     * The closed seven-context enum, spanning three subject grains: per-property
-     * (`edit`, `detail`, `list-column`, `row-cell`), whole-record (`list-item`) and
-     * whole-collection (`summary`, `overview`). See {@see WidgetIn} for the grains.
+     * The block's `known`: every registered context's name, in registration order (frame-foundation 90; was the
+     * `KnownContexts` constant). Frame's seven are per-property (`edit`, `detail`, `list-column`, `row-cell`),
+     * whole-record (`list-item`) and whole-collection (`summary`, `overview`); see {@see WidgetIn} for the grains.
+     *
+     * @return list<string>
      */
-    public const KnownContexts = ['edit', 'detail', 'list-column', 'list-item', 'row-cell', 'summary', 'overview'];
+    public function known(): array
+    {
+        return $this->registry()->known();
+    }
 
     /**
-     * Contexts whose subject is ONE RECORD — class-level only, since no single
-     * property can stand for the record.
+     * The block's `inherits`: each context with a non-empty fallback, in registration order (frame's two:
+     * `row-cell` ← `edit`, `overview` ← `summary`).
+     *
+     * @return array<string, list<string>>
      */
-    public const RecordContexts = ['list-item'];
+    public function inherits(): array
+    {
+        return $this->registry()->inherits();
+    }
 
-    /**
-     * Contexts whose subject is the WHOLE COLLECTION — class-level only, for the same
-     * reason one grain up: `summary` compresses the collection to figures, `overview`
-     * expands it to a card with a body. The cascade `overview ← summary` is declared
-     * by {@see ContextManifest}, not here.
-     */
-    public const CollectionContexts = ['summary', 'overview'];
+    /** The registry, with its edges checked on the first read when this projector built it itself. */
+    private function registry(): WidgetContextRegistry
+    {
+        if ($this->edgesPending) {
+            $this->edgesPending = false;
+            $this->contexts->assertEdges();
+        }
+
+        return $this->contexts;
+    }
 
     /**
      * Project a property's WidgetIn-family attributes to the `{context => entry}` map.
@@ -218,34 +244,33 @@ class WidgetContextProjector
 
     private function validate(string $context, bool $classLevel, string|bool $bind = true): void
     {
-        if (! in_array($context, self::KnownContexts, true)) {
+        $registry = $this->registry();
+        $entry = $registry->context($context);
+
+        if ($entry === null) {
             throw new InvalidArgumentException(
-                "Unknown widget context [{$context}]; expected one of: ".implode(', ', self::KnownContexts).'.'
+                "Unknown widget context [{$context}]; expected one of: ".implode(', ', $registry->known()).'.'
             );
         }
 
         // Record and collection contexts are both class-only: their subject is larger
         // than any one property.
-        $collection = in_array($context, self::CollectionContexts, true);
-        $classOnly = $collection || in_array($context, self::RecordContexts, true);
+        $classOnly = $entry->grain !== ContextGrain::Property;
 
-        // The class-level #[RowActions] sugar is a `list-column` binding of the `row-actions`
-        // widget placed on the record (the row-actions column is not backed by any single
-        // property). Permit that one class-level `list-column` case; every other per-property
-        // context stays property-only at the class level.
-        $classLevelRowActions = $context === 'list-column' && $bind === 'row-actions';
+        // A property-grain context admits, at the class level, only a widget its entry RESERVES: frame's `list-column`
+        // reserves `row-actions`, the class-level #[RowActions] sugar (the row-actions column is not backed by any
+        // single property). Every other per-property declaration stays property-only at the class level.
+        $classLevelReserved = ! $classOnly && is_string($bind) && in_array($bind, $entry->reserved, true);
 
-        if ($classLevel && ! $classOnly && ! $classLevelRowActions) {
+        if ($classLevel && ! $classOnly && ! $classLevelReserved) {
             throw new InvalidArgumentException(
                 "Widget context [{$context}] is per-property; it cannot be declared at the class level."
             );
         }
 
         if (! $classLevel && $classOnly) {
-            $grain = $collection ? 'whole-collection' : 'whole-record';
-
             throw new InvalidArgumentException(
-                "Widget context [{$context}] is {$grain} (class-level) only; it cannot be declared on a property."
+                "Widget context [{$context}] is {$entry->grain->describe()} (class-level) only; it cannot be declared on a property."
             );
         }
     }

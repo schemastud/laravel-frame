@@ -3,6 +3,7 @@
 namespace Schemastud\Frame\Vocabulary;
 
 use JsonException;
+use Schemastud\Frame\Registry\WidgetContextRegistry;
 
 /**
  * Reads a host's widget vocabulary file: `resources/frame/vocabulary.json` by default, moved by the `frame.vocabulary`
@@ -17,6 +18,7 @@ use JsonException;
  * The file's shape (version 1):
  *
  *     { "version": 1, "contexts": [...], "formModes": [...], "reserved": [...],
+ *       "inherits"?: { "<context>": ["<fallback>", ...] },
  *       "widgets": { "<name>": [ { "contexts"?: [...], "stock"?: [...] }, ... ] },
  *       "conflicts"?: { "<name>": ["<context>", ...] }, "reads"?: [...] }
  *
@@ -95,6 +97,31 @@ final class WidgetVocabulary
     public function contexts(): array
     {
         return $this->strings('contexts');
+    }
+
+    /**
+     * The file's `inherits` map (frame-foundation 86, ruling item 5): each context to the contexts it falls back to. The
+     * key is optional and written only when a kit's edges differ from frame's, so an absent key means frame's two seeded
+     * edges (`row-cell` ← `edit`, `overview` ← `summary`). Non-string entries are dropped.
+     *
+     * @return array<string, list<string>>
+     */
+    public function inherits(): array
+    {
+        $map = $this->data['inherits'] ?? null;
+
+        if (! is_array($map)) {
+            return (new WidgetContextRegistry)->inherits();
+        }
+
+        $edges = [];
+        foreach ($map as $context => $fallback) {
+            if (is_string($context) && is_array($fallback)) {
+                $edges[$context] = array_values(array_filter($fallback, 'is_string'));
+            }
+        }
+
+        return $edges;
     }
 
     /** @return list<string> */

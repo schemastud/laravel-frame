@@ -6,9 +6,9 @@ use PHPUnit\Framework\TestCase;
 use Rushing\Popcorn\Registries\Docs\RegistryDocsCheck;
 
 /**
- * This package adopts the package-tier registry docs check over the whole of `src/`: its one declared
- * root, `frame.resources`, has its `docs/registries/frame.resources.mdx` page, and the page's generated
- * facts block is byte-identical to a fresh render of the `#[IsRegistry]` declaration.
+ * This package adopts the package-tier registry docs check over the whole of `src/`: each declared root,
+ * `frame.resources` and (frame-foundation 90) `frame.contexts`, has its `docs/registries/<root>.mdx` page,
+ * and the page's generated facts block is byte-identical to a fresh render of the `#[IsRegistry]` declaration.
  *
  * The per-producer `frame.resources.{member}` declarations are built at runtime, not by attribute, so
  * they are members of that root rather than roots of their own and the scan does not count them.
@@ -21,6 +21,8 @@ class RegistryDocsAdoptionTest extends TestCase
         $report = RegistryDocsCheck::forPackage(dirname(__DIR__))->run();
 
         $this->assertSame([], $report->failures(), $report->summary());
-        $this->assertSame(['frame.resources'], array_keys($report->coverage));
+        $coverage = array_keys($report->coverage);
+        sort($coverage);
+        $this->assertSame(['frame.contexts', 'frame.resources'], $coverage);
     }
 }

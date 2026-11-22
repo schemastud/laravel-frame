@@ -15,6 +15,7 @@ use Schemastud\Frame\Registry\DeferredWidgetLabel;
 use Schemastud\Frame\Registry\IdentityWidgetLabel;
 use Schemastud\Frame\Registry\InMemoryResourceRegistry;
 use Schemastud\Frame\Registry\WidgetContextProjector;
+use Schemastud\Frame\Registry\WidgetContextRegistry;
 use Schemastud\Frame\Routing\FrameRoutes;
 use Schemastud\Frame\Strategies\ReadOnlyAttributeStrategy;
 use Schemastud\Frame\Strategies\ResourceRefStrategy;
@@ -58,7 +59,16 @@ class FrameServiceProvider extends PackageServiceProvider
         // where beam binds one). ContextManifest and WidgetContextsStrategy take it by constructor. The hook is DEFERRED
         // (review MED 1): it resolves the bound WidgetLabel on the projector's first label() call, so building a projector
         // (beam's contribution registry does at every boot, for a check that reads no label) builds no label chain.
-        $this->app->bind(WidgetContextProjector::class, static fn ($app): WidgetContextProjector => new WidgetContextProjector(new DeferredWidgetLabel($app)));
+        //
+        // frame-foundation 90: the render contexts are frame's `frame.contexts` registry, ONE per container (seeded with
+        // frame's seven in its constructor), handed to every projector beside the label hook. A package or host
+        // registers or supersedes a context from its provider's boot(). The edges (each fallback registered, of the same
+        // grain) are checked ONCE, after every provider has booted, so provider order never changes the answer.
+        $this->app->singleton(WidgetContextRegistry::class);
+        $this->app->bind(WidgetContextProjector::class, static fn ($app): WidgetContextProjector => new WidgetContextProjector(new DeferredWidgetLabel($app), $app->make(WidgetContextRegistry::class)));
+        $this->app->booted(static function ($app): void {
+            $app->make(WidgetContextRegistry::class)->assertEdges();
+        });
     }
 
     public function packageBooted(): void

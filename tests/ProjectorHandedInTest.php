@@ -135,7 +135,8 @@ class ProjectorHandedInTest extends TestCase
                 }
                 // review LOW 3: the provider's binding is the ONLY allowed site (frame's nullable defaults call resolved());
                 // a later `?? new WidgetContextProjector` anywhere in frame's src/ fails here
-                $allowed = $file->getFilename() === 'FrameServiceProvider.php' && str_contains($line, 'new WidgetContextProjector(new DeferredWidgetLabel($app))');
+                // frame-foundation 90: the binding also hands the projector frame's context registry
+                $allowed = $file->getFilename() === 'FrameServiceProvider.php' && str_contains($line, 'new WidgetContextProjector(new DeferredWidgetLabel($app), $app->make(WidgetContextRegistry::class))');
                 if (! $allowed) {
                     $sites[] = $file->getFilename().':'.($n + 1).': '.trim($line);
                 }

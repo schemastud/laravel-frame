@@ -7,6 +7,7 @@ use Schemastud\Frame\Attributes\Overview;
 use Schemastud\Frame\Attributes\Summary;
 use Schemastud\Frame\Attributes\WidgetIn;
 use Schemastud\Frame\Contracts\ResourceContextContributor;
+use Schemastud\Frame\Registry\ContextBlockFacts;
 use Schemastud\Frame\Registry\ContextContributorRegistry;
 use Schemastud\Frame\Registry\ContextManifest;
 use Schemastud\Frame\Tests\Fixtures\BadClassContextData;
@@ -78,7 +79,7 @@ class ContextManifestTest extends TestCase
 
     public function test_layout_is_emitted_from_the_handed_in_definition_layout(): void
     {
-        $block = (new ContextManifest)->forResource(ContactResourceData::class, 'subnav');
+        $block = (new ContextManifest)->forResource(ContactResourceData::class, new ContextBlockFacts(layout: 'subnav'));
 
         $this->assertSame('subnav', $block['layout']);
     }
@@ -193,7 +194,7 @@ class ContextManifestTest extends TestCase
     {
         $this->assertSame(
             (new ContextManifest)->forResource(ContactResourceData::class),
-            (new ContextManifest)->forResource(ContactResourceData::class, null, 'contacts'),
+            (new ContextManifest)->forResource(ContactResourceData::class, new ContextBlockFacts(key: 'contacts')),
         );
     }
 
@@ -203,7 +204,7 @@ class ContextManifestTest extends TestCase
 
         $this->assertSame(
             (new ContextManifest)->forResource(ContactResourceData::class),
-            $manifest->forResource(ContactResourceData::class, null, 'contacts'),
+            $manifest->forResource(ContactResourceData::class, new ContextBlockFacts(key: 'contacts')),
         );
     }
 
@@ -212,7 +213,7 @@ class ContextManifestTest extends TestCase
         $entry = ['list-column' => ['participates' => true, 'label' => 'Plan', 'sort' => 10]];
 
         $byNode = (new ContextManifest($this->contributors(['contacts' => ['commerce.plan' => $entry]])))
-            ->forResource(ContactResourceData::class, null, 'contacts')['byNode'];
+            ->forResource(ContactResourceData::class, new ContextBlockFacts(key: 'contacts'))['byNode'];
 
         $this->assertSame($entry, $byNode['commerce.plan']);
     }
@@ -229,7 +230,7 @@ class ContextManifestTest extends TestCase
         $reflected = (new ContextManifest)->forResource(ContactResourceData::class)['byNode'];
 
         $byNode = (new ContextManifest($this->contributors(['contacts' => ['commerce.plan' => ['x' => []]]])))
-            ->forResource(ContactResourceData::class, null, 'contacts')['byNode'];
+            ->forResource(ContactResourceData::class, new ContextBlockFacts(key: 'contacts'))['byNode'];
 
         foreach ($reflected as $pointer => $map) {
             $this->assertSame($map, $byNode[$pointer]);
@@ -248,7 +249,7 @@ class ContextManifestTest extends TestCase
         ];
 
         $root = (new ContextManifest($this->contributors(['contacts' => ['' => $contributed]])))
-            ->forResource(ContactResourceData::class, null, 'contacts')['byNode'][''];
+            ->forResource(ContactResourceData::class, new ContextBlockFacts(key: 'contacts'))['byNode'][''];
 
         $this->assertSame(['participates' => true, 'widget' => 'contact-card'], $root['list-item']);
         $this->assertSame(['participates' => true, 'widget' => 'stat-row'], $root['summary']);
@@ -262,7 +263,7 @@ class ContextManifestTest extends TestCase
         ];
 
         $email = (new ContextManifest($this->contributors(['contacts' => ['email' => $contributed]])))
-            ->forResource(ContactResourceData::class, null, 'contacts')['byNode']['email'];
+            ->forResource(ContactResourceData::class, new ContextBlockFacts(key: 'contacts'))['byNode']['email'];
 
         $this->assertSame('email-input', $email['edit']['widget']);
         $this->assertSame('contributed-detail', $email['detail']['widget']);

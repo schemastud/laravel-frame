@@ -3,6 +3,7 @@
 namespace Schemastud\Frame\Vocabulary;
 
 use Schemastud\Frame\Keywords;
+use Schemastud\Frame\Registry\ContextBlockFacts;
 use Schemastud\Frame\Registry\ContextManifest;
 use Schemastud\Frame\Registry\ResourceDefinition;
 use Schemastud\Frame\Registry\ResourceSchemas;
@@ -71,7 +72,8 @@ class DeclaredWidgets
         }
 
         try {
-            $block = $this->manifest->forResource($definition->data, $definition->layout, $definition->key);
+            // No authorizer: `byNode` depends only on the Data class, the contributors and the key (88, ruling 9).
+            $block = $this->manifest->forResource($definition->data, ContextBlockFacts::forDefinition($definition));
         } catch (Throwable $e) {
             $failures[] = new ProjectionFailure($definition->key, DeclaredWidget::SourceContextBlock, $definition->data, $e::class, $e->getMessage());
 

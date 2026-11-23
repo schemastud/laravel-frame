@@ -28,8 +28,9 @@ use Schemastud\Frame\Contracts\ResourceContextContributor;
  * resource key — so a producer that adds participation per RESOURCE cannot express it through
  * the class alone. That mismatch is why context contributors exist (each a {@see ResourceContextContributor}
  * registered under a key in {@see ContextContributorRegistry}, frame-foundation 93) and why `forResource()` takes the
- * resource `$key` alongside its Data class: the reflection half stays class-keyed, the contributed half is key-keyed,
- * and the two merge here (particle-contribution-seam ticket 17 §A1/§A2).
+ * resource key (`ContextBlockFacts::$key`, frame-foundation 94) alongside its Data class: the reflection half stays
+ * class-keyed, the contributed half is key-keyed, and the two merge here (particle-contribution-seam ticket 17
+ * §A1/§A2).
  *
  * The registry arrives by NULLABLE CONSTRUCTOR ARGUMENT, never by service location. `new
  * ContextManifest` keeps working everywhere it already appears, a pure-frame host binds
@@ -52,18 +53,30 @@ class ContextManifest
     }
 
     /**
-     * @param  'single'|'subnav'|'master-detail'|null  $layout  the resource's declared inner-layout grammar, handed in from its {@see ResourceDefinition} (frame no longer reflects the producer's attribute for it)
-     * @param  string|null  $key  the resource's registry key, for the {@see ContextContributorRegistry}'s contributors. Null (or no registry, or nothing registered) ⇒ reflection only, which is every pure-frame host.
-     * @param  'frame'|'host'  $createAffordance  the RESOLVED create affordance, handed in from the resource's {@see ResourceDefinition::resolvedCreateAffordance()}. It rides this block rather than the definition for the same reason `$layout` does: a frame shell is handed its ContextManifest and never the definition, so a presentation fact the shell must read has to arrive here. Defaults to `'frame'` — today's behaviour — so every existing caller of this method emits an unchanged block.
-     * @param  string  $singularLabel  the RESOLVED display singular, handed in from {@see ResourceDefinition::resolvedSingularLabel()}. It rides this block for the same reason `$layout` and `$createAffordance` do: a frame shell is handed its ContextManifest and never the definition, so a presentation fact the shell must read has to arrive here. Empty (the default) ⇒ the shell falls back to the resource KEY, i.e. today's behaviour, so every existing caller of this method emits an unchanged block.
-     * @param  array{create?: bool, update?: bool, delete?: bool}  $can  the CURRENT ACTOR's class-level write capabilities, from {@see \Schemastud\Frame\Authorization\ResourceAuthorizer::capabilities()}. It rides this block for the same reason the three above do — the shell never sees the definition — and it is the axis the shell has never had. `createAffordance`/`creatable`/`deletable`/`editable` describe the RESOURCE ("may this be created at all", "whose chrome owns the button"); this describes the ACTOR, and the two are deliberately NOT collapsed: a resource can be perfectly `creatable` and un-creatable BY YOU. A shell renders a create affordance when `createAffordance === 'frame' && can.create` — two fields answering two different questions, not two spellings of one. **Empty (the default) ⇒ no actor axis was resolved and the shell falls back to the resource flags alone**, i.e. today's behaviour, so every existing caller of this method emits an unchanged block. That default is permissive by design: this map exists to stop offering buttons that cannot work, and the endpoint — not this — is what refuses the write ({@see \Schemastud\Frame\Http\Controllers\FrameResourceController}).
-     * @param  list<ResourceActionDefinition>  $actions  the resource's declared ACTIONS, handed in from {@see ResourceDefinition::$actions} (ADR-0005). They ride this block for the reason `$layout` does — a shell is handed its ContextManifest and never the definition — and pair with `can.actions`, the per-actor half, which the caller puts in `$can`. Empty (the default) ⇒ no `actions` key is emitted, so every existing caller's block is byte-identical.
-     * @param  list<ResourceCollectionAddress>  $collections  the current actor's readable Collection choices for this resource
-     * @param  array<string, list<string>>  $requires  the definition's `requires` behaviour map (agreements 05); empty (the default) ⇒ no `requires` key, so every existing caller's block is byte-identical.
-     * @return array{byNode: array<string, array<string, mixed>>, inherits: array<string, list<string>>, known: list<string>, layout: 'single'|'subnav'|'master-detail'|null, createAffordance: 'frame'|'host', singularLabel: string, can: array{create?: bool, update?: bool, delete?: bool, actions?: array<string, bool>}, actions?: list<array<string, mixed>>, requires?: array<string, list<string>>}
+     * One resource's context block: `byNode` reflected from the Data class (plus the nodes contributed under the
+     * resource key), `inherits` and `known` from the context registry, and the resource's and actor's facts from
+     * `$facts` (frame-foundation 88/94). A caller with a definition passes
+     * `forResource($definition->data, ContextBlockFacts::forDefinition($definition, $authorizer))`.
+     *
+     * The facts ride this block because a frame shell is handed its ContextManifest and never the definition. Each
+     * one's meaning is on {@see ContextBlockFacts}; the actor's `can` and the resource's `createAffordance` are
+     * deliberately NOT collapsed: a resource can be perfectly `creatable` and un-creatable BY YOU, and a shell renders
+     * a create affordance when `createAffordance === 'frame' && can.create`.
+     *
+     * The default facts emit the block the Data class alone always got. The parameter is not nullable, so an old
+     * positional call (`forResource(X::class, null, 'k')`) throws a TypeError rather than silently dropping its facts.
+     * A new fact is a new {@see ContextBlockFacts} property, never a new parameter here.
+     *
+     * @param  class-string  $dataClass  the Data class reflected for `byNode`
+     * @return array{byNode: array<string, array<string, mixed>>, inherits: array<string, list<string>>, known: list<string>, layout: 'single'|'subnav'|'master-detail'|null, createAffordance: 'frame'|'host', singularLabel: string, can: array{create?: bool, update?: bool, delete?: bool, actions?: array<string, bool>}, actions?: list<array<string, mixed>>, requires?: array<string, list<string>>, collections?: list<array<string, mixed>>}
      */
-    public function forResource(string $dataClass, ?string $layout = null, ?string $key = null, string $createAffordance = 'frame', string $singularLabel = '', array $can = [], array $actions = [], array $collections = [], array $requires = []): array
+    public function forResource(string $dataClass, ContextBlockFacts $facts = new ContextBlockFacts): array
     {
+        $key = $facts->key;
+        $actions = $facts->actions;
+        $requires = $facts->requires;
+        $collections = $facts->collections;
+
         $reflection = new ReflectionClass($dataClass);
         $projector = $this->projector;
 
@@ -116,21 +129,21 @@ class ContextManifest
             // (the producer read it off its own declaration); frame no longer reflects a
             // producer attribute for it. Null when the resource is layout-agnostic; the
             // socket then falls back to SingleColumn (ticket 09).
-            'layout' => $layout,
+            'layout' => $facts->layout,
             // WHERE this resource's create affordance lives — `'frame'` (its list Toolbar emits the
             // "New …" button) or `'host'` (the host's own chrome owns it, so frame emits none).
             // Already RESOLVED against the definition's `creatable` gate; the client reads this one
             // field and never recombines two, so `creatable` keeps a single spelling.
-            'createAffordance' => $createAffordance,
+            'createAffordance' => $facts->createAffordance,
             // WHAT this resource calls ONE record — the noun frame's own toolbar puts after "New".
             // Already resolved (declared word, else the plural label inflected); the client neither
             // inflects nor sees the label, which is why the default toolbar said "New scaffold-packs".
-            'singularLabel' => $singularLabel,
+            'singularLabel' => $facts->singularLabel,
             // WHETHER THIS ACTOR may write — the axis the client did not have, which is why the beam
             // console rendered a "New entry" button and 13 "Delete entry" buttons for a member
             // holding only `beam-ux-entry.view`. Resolved server-side against the same
             // ResourceAuthorizer the endpoint asks, so the button and its 403 cannot disagree.
-            'can' => $can,
+            'can' => $facts->can,
             // WHAT this resource offers beyond CRUD (ADR-0005) — each action's button, form input and
             // result presentation, serialized the way the manifest's `resources[]` entry carries it.
             // Emitted only when there is something to say, so a resource without actions keeps the

@@ -2,6 +2,7 @@
 
 namespace Schemastud\Frame\Tests;
 
+use Schemastud\Frame\Registry\ContextBlockFacts;
 use Schemastud\Frame\Registry\ContextManifest;
 use Schemastud\Frame\Registry\NavMetadata;
 use Schemastud\Frame\Registry\ResourceDefinition;
@@ -92,9 +93,10 @@ class CreateAffordanceTest extends TestCase
     {
         $block = (new ContextManifest)->forResource(
             ContactResourceData::class,
-            null,
-            'sample',
-            $this->definition(creatable: false)->resolvedCreateAffordance(),
+            new ContextBlockFacts(
+                key: 'sample',
+                createAffordance: $this->definition(creatable: false)->resolvedCreateAffordance(),
+            ),
         );
 
         $this->assertSame('host', $block['createAffordance']);

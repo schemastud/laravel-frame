@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Artisan;
 use InvalidArgumentException;
 use Rushing\Popcorn\Registries\RegistryIndex;
 use Schemastud\Frame\Contracts\ResourceContextContributor;
+use Schemastud\Frame\Registry\ContextBlockFacts;
 use Schemastud\Frame\Registry\ContextContributorRegistry;
 use Schemastud\Frame\Registry\ContextManifest;
 use Schemastud\Frame\Tests\Fixtures\ContactResourceData;
@@ -78,12 +79,12 @@ class ContextContributorRegistryTest extends TestCase
 
     public function test_row_01_no_registry_passed_is_reflection_only(): void
     {
-        $this->assertSame($this->reflected(), (new ContextManifest)->forResource(ContactResourceData::class, null, self::KEY));
+        $this->assertSame($this->reflected(), (new ContextManifest)->forResource(ContactResourceData::class, new ContextBlockFacts(key: self::KEY)));
     }
 
     public function test_row_02_a_registry_with_nothing_registered_is_identical_to_row_1(): void
     {
-        $this->assertSame($this->reflected(), (new ContextManifest(new ContextContributorRegistry))->forResource(ContactResourceData::class, null, self::KEY));
+        $this->assertSame($this->reflected(), (new ContextManifest(new ContextContributorRegistry))->forResource(ContactResourceData::class, new ContextBlockFacts(key: self::KEY)));
     }
 
     public function test_row_03_a_null_key_calls_no_factory(): void
@@ -192,11 +193,11 @@ class ContextContributorRegistryTest extends TestCase
         $manifest = $this->app->make(ContextManifest::class);
 
         $this->app->instance('request', Request::create('/?label=first'));
-        $first = $manifest->forResource(ContactResourceData::class, null, self::KEY)['byNode']['commerce.plan'];
+        $first = $manifest->forResource(ContactResourceData::class, new ContextBlockFacts(key: self::KEY))['byNode']['commerce.plan'];
 
         $this->app->forgetScopedInstances();
         $this->app->instance('request', Request::create('/?label=second'));
-        $second = $manifest->forResource(ContactResourceData::class, null, self::KEY)['byNode']['commerce.plan'];
+        $second = $manifest->forResource(ContactResourceData::class, new ContextBlockFacts(key: self::KEY))['byNode']['commerce.plan'];
 
         $this->assertSame('first', $first['list-column']['label']);
         $this->assertSame('second', $second['list-column']['label']);
@@ -228,7 +229,7 @@ class ContextContributorRegistryTest extends TestCase
     /** @return array<string, array<string, mixed>> */
     private function byNode(ContextContributorRegistry $registry): array
     {
-        return (new ContextManifest($registry))->forResource(ContactResourceData::class, null, self::KEY)['byNode'];
+        return (new ContextManifest($registry))->forResource(ContactResourceData::class, new ContextBlockFacts(key: self::KEY))['byNode'];
     }
 
     /** @param  array<string, array<string, array<string, mixed>>>  $byKey  registry key => the contributor's nodes for `contacts` */

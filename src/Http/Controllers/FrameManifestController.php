@@ -7,9 +7,9 @@ use Schemastud\Frame\Authorization\ResourceAuthorizer;
 use Schemastud\Frame\Contracts\FrameNavContributor;
 use Schemastud\Frame\Contracts\ResourceAccessGate;
 use Schemastud\Frame\Contracts\ResourceRegistry;
+use Schemastud\Frame\Registry\ContextBlockFacts;
 use Schemastud\Frame\Registry\ContextManifest;
 use Schemastud\Frame\Registry\NavManifest;
-use Spatie\LaravelData\Optional;
 
 /**
  * GET /frame/manifest -> { resources: ResourceDefinition[], contexts: {key => block} }
@@ -56,25 +56,11 @@ class FrameManifestController
             }
 
             $resources[] = $definition;
+            // The actor's authorizer puts the ACTOR axis (`can`) on the block, so this response VARIES BY USER: a host
+            // caching it must key that cache on the viewer, or it will serve one actor's affordances to another.
             $contexts[$definition->key] = $manifest->forResource(
                 $definition->data,
-                $definition->layout,
-                $definition->key,
-                $definition->resolvedCreateAffordance(),
-                $definition->resolvedSingularLabel(),
-                // The ACTOR axis. This makes the manifest response VARY BY USER, which it did not
-                // before — a host caching it must key that cache on the viewer, or it will serve one
-                // actor's affordances to another. The resources/contexts payload is otherwise
-                // unchanged, and an anonymous request resolves every capability false.
-                [
-                    ...$authorizer->capabilities($definition),
-                    // The per-actor half of the resource's declared ACTIONS (ADR-0005), asked of the
-                    // producer's port. Absent for a resource that declares none.
-                    ...($definition->actions === [] ? [] : ['actions' => $authorizer->actionCapabilities($definition)]),
-                ],
-                $definition->actions,
-                $definition->collections,
-                $definition->requires instanceof Optional ? [] : $definition->requires,
+                ContextBlockFacts::forDefinition($definition, $authorizer),
             );
         }
 

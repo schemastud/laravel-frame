@@ -2,6 +2,7 @@
 
 namespace Schemastud\Frame\Tests;
 
+use Schemastud\Frame\Registry\ContextBlockFacts;
 use Schemastud\Frame\Registry\ContextManifest;
 use Schemastud\Frame\Registry\NavMetadata;
 use Schemastud\Frame\Registry\ResourceDefinition;
@@ -111,10 +112,11 @@ class SingularLabelTest extends TestCase
     {
         $block = (new ContextManifest)->forResource(
             ContactResourceData::class,
-            null,
-            'scaffold-packs',
-            'frame',
-            $this->definition('scaffold-packs', 'Scaffold packs')->resolvedSingularLabel(),
+            new ContextBlockFacts(
+                key: 'scaffold-packs',
+                createAffordance: 'frame',
+                singularLabel: $this->definition('scaffold-packs', 'Scaffold packs')->resolvedSingularLabel(),
+            ),
         );
 
         $this->assertSame('Scaffold pack', $block['singularLabel']);

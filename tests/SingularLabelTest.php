@@ -123,8 +123,8 @@ class SingularLabelTest extends TestCase
     }
 
     /**
-     * Zero migration: every pre-existing caller passes at most four arguments, and the block it
-     * gets must render exactly as it did — which for a shell means falling back to the key.
+     * Default facts: a caller that supplies only the Data class keeps the default block semantics,
+     * which for a shell means an empty word and the client falling back to the key.
      */
     public function test_an_unaware_caller_gets_an_empty_word_and_the_client_falls_back(): void
     {

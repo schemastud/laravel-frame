@@ -103,8 +103,8 @@ class CreateAffordanceTest extends TestCase
     }
 
     /**
-     * Zero migration: every pre-existing caller of `forResource()` passes three arguments and must
-     * still emit the block that renders frame's own toolbar.
+     * Default facts: a caller of `forResource()` that supplies only the Data class keeps the default
+     * block semantics, which here means the block that renders frame's own toolbar.
      */
     public function test_an_unaware_caller_still_gets_frames_own_affordance(): void
     {

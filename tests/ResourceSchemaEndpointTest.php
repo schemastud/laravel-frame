@@ -87,6 +87,13 @@ class ResourceSchemaEndpointTest extends TestCase
         $this->getJson('frame/resources/missing/schema?purpose=other')->assertNotFound();
     }
 
+    public function test_invalid_schema_purpose_is_reported_on_the_validation_error_key(): void
+    {
+        $this->getJson('frame/resources/sample/schema?purpose=bogus')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('purpose');
+    }
+
     public function test_denied_reach_precedes_invalid_purpose_validation(): void
     {
         $this->app->instance(\Schemastud\Frame\Contracts\ResourceAccessGate::class, new class implements \Schemastud\Frame\Contracts\ResourceAccessGate

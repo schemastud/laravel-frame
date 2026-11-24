@@ -310,8 +310,8 @@ class EmittedWireKeysTest extends TestCase
             key: 'wallets',
             collections: [new ResourceCollectionAddress('https://schemas.example/wallets', 'Wallets')],
             actions: [
-                new ResourceActionDefinition(key: 'reload', label: 'Reload', scope: ResourceActionDefinition::ScopeResource, method: 'POST', url: '/api/wallets/reload', input: Fixtures\SampleActionInputData::class),
-                new ResourceActionDefinition(key: 'archive', label: 'Archive', scope: ResourceActionDefinition::ScopeRecord, method: 'POST', url: '/api/wallets/{id}/archive', result: ResourceActionDefinition::ResultNavigate, destructive: true),
+                new ResourceActionDefinition(key: 'reload', label: 'Reload', scope: \Schemastud\Frame\Registry\ResourceActionScope::Resource, method: 'POST', url: '/api/wallets/reload', input: Fixtures\SampleActionInputData::class),
+                new ResourceActionDefinition(key: 'archive', label: 'Archive', scope: \Schemastud\Frame\Registry\ResourceActionScope::Record, method: 'POST', url: '/api/wallets/{id}/archive', result: \Schemastud\Frame\Registry\ResourceActionResult::Navigate, destructive: true),
             ],
         );
 
@@ -320,7 +320,7 @@ class EmittedWireKeysTest extends TestCase
         $definitions[] = $definitions[0]->withOverrides(
             key: 'gated',
             actions: [
-                new ResourceActionDefinition(key: 'publish', label: 'Publish', scope: ResourceActionDefinition::ScopeRecord, method: 'POST', url: '/api/gated/{id}/publish', requires: ['terms']),
+                new ResourceActionDefinition(key: 'publish', label: 'Publish', scope: \Schemastud\Frame\Registry\ResourceActionScope::Record, method: 'POST', url: '/api/gated/{id}/publish', requires: ['terms']),
             ],
             requires: ['gated:write' => ['terms']],
         );

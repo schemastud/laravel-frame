@@ -9,6 +9,7 @@ use Schemastud\Frame\Registry\NavMetadata;
 use Schemastud\Frame\Registry\ResourceActionDefinition;
 use Schemastud\Frame\Registry\ResourceCollectionAddress;
 use Schemastud\Frame\Registry\ResourceDefinition;
+use Schemastud\Frame\Registry\ResourceLayout;
 use Schemastud\Frame\Tests\Fixtures\ContactResourceData;
 use Schemastud\Frame\Tests\Fixtures\SampleModel;
 use Spatie\LaravelData\Optional;
@@ -133,7 +134,7 @@ class ContextBlockFactsTest extends TestCase
             editData: null,
             policy: null,
             nav: new NavMetadata(label: 'Notes'),
-            layout: 'subnav',
+            layout: ResourceLayout::Subnav,
             actions: $actions,
             collections: $collections,
             requires: $requires,
@@ -143,7 +144,7 @@ class ContextBlockFactsTest extends TestCase
     private function action(string $key): ResourceActionDefinition
     {
         return new ResourceActionDefinition(
-            key: $key, label: ucfirst($key), scope: ResourceActionDefinition::ScopeRecord, method: 'POST', url: "/api/notes/{id}/{$key}",
+            key: $key, label: ucfirst($key), scope: \Schemastud\Frame\Registry\ResourceActionScope::Record, method: 'POST', url: "/api/notes/{id}/{$key}",
         );
     }
 }

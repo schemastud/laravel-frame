@@ -33,7 +33,7 @@ class ResourceActionsTest extends TestCase
                 new ResourceActionDefinition(
                     key: 'reload',
                     label: 'Reload credits',
-                    scope: ResourceActionDefinition::ScopeResource,
+                    scope: \Schemastud\Frame\Registry\ResourceActionScope::Resource,
                     method: 'POST',
                     url: '/api/wallets/reload',
                     input: SampleActionInputData::class,
@@ -41,10 +41,10 @@ class ResourceActionsTest extends TestCase
                 new ResourceActionDefinition(
                     key: 'archive',
                     label: 'Archive',
-                    scope: ResourceActionDefinition::ScopeRecord,
+                    scope: \Schemastud\Frame\Registry\ResourceActionScope::Record,
                     method: 'POST',
                     url: '/api/wallets/{id}/archive',
-                    result: ResourceActionDefinition::ResultNavigate,
+                    result: \Schemastud\Frame\Registry\ResourceActionResult::Navigate,
                     destructive: true,
                 ),
             ])));
@@ -64,7 +64,7 @@ class ResourceActionsTest extends TestCase
             query: null,
             editData: null,
             policy: null,
-            form: 'bare',
+            form: \Schemastud\Frame\Registry\FormMode::Bare,
             nav: new NavMetadata(label: ucfirst($key)),
             actions: $actions,
         );

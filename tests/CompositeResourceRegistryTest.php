@@ -162,7 +162,7 @@ class CompositeResourceRegistryTest extends TestCase
             query: null,
             editData: null,
             policy: null,
-            form: 'enriched',
+            form: \Schemastud\Frame\Registry\FormMode::Enriched,
             nav: new NavMetadata(label: $label ?? $key),
         );
     }

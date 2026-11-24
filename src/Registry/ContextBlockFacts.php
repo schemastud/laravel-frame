@@ -69,7 +69,7 @@ final class ContextBlockFacts
     public static function forDefinition(ResourceDefinition $definition, ?ResourceAuthorizer $authorizer = null): self
     {
         return new self(
-            layout: $definition->layout,
+            layout: $definition->layout?->value,
             key: $definition->key,
             createAffordance: $definition->resolvedCreateAffordance(),
             singularLabel: $definition->resolvedSingularLabel(),

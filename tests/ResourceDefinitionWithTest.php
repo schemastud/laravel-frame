@@ -25,7 +25,7 @@ class ResourceDefinitionWithTest extends TestCase
             query: null,
             editData: null,
             policy: 'sample.view',
-            form: 'bare',
+            form: \Schemastud\Frame\Registry\FormMode::Bare,
             nav: new NavMetadata(
                 label: 'Samples',
                 group: 'Testing',
@@ -34,7 +34,7 @@ class ResourceDefinitionWithTest extends TestCase
                 navOrder: 3,
                 routeName: 'samples.index',
             ),
-            layout: 'single',
+            layout: \Schemastud\Frame\Registry\ResourceLayout::Single,
         );
     }
 
@@ -57,10 +57,10 @@ class ResourceDefinitionWithTest extends TestCase
     public function test_a_top_level_overlay_replaces_only_the_named_field(): void
     {
         $original = $this->definition();
-        $copy = $original->withOverrides(policy: 'sample.manage', showable: false, form: 'enriched');
+        $copy = $original->withOverrides(policy: 'sample.manage', showable: false, form: \Schemastud\Frame\Registry\FormMode::Enriched);
 
         $this->assertSame('sample.manage', $copy->policy);
-        $this->assertSame('enriched', $copy->form);
+        $this->assertSame(\Schemastud\Frame\Registry\FormMode::Enriched, $copy->form);
         $this->assertFalse($copy->showable);
 
         // Untouched fields carry through.
@@ -69,7 +69,7 @@ class ResourceDefinitionWithTest extends TestCase
 
         // The original is unmutated.
         $this->assertSame('sample.view', $original->policy);
-        $this->assertSame('bare', $original->form);
+        $this->assertSame(\Schemastud\Frame\Registry\FormMode::Bare, $original->form);
         $this->assertTrue($original->showable);
     }
 

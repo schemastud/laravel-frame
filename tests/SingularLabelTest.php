@@ -35,7 +35,7 @@ class SingularLabelTest extends TestCase
             query: null,
             editData: null,
             policy: null,
-            form: 'bare',
+            form: \Schemastud\Frame\Registry\FormMode::Bare,
             nav: new NavMetadata(label: $label),
             singularLabel: $singularLabel,
         );
@@ -151,7 +151,7 @@ class SingularLabelTest extends TestCase
             query: null,
             editData: null,
             policy: null,
-            form: 'bare',
+            form: \Schemastud\Frame\Registry\FormMode::Bare,
             nav: new NavMetadata(label: 'Media'),
             singularLabel: 'Media',
         );

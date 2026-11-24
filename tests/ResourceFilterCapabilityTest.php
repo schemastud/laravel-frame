@@ -41,7 +41,7 @@ class ResourceFilterCapabilityTest extends TestCase
         return new ResourceDefinition(
             key: $key, model: null, data: SampleResourceData::class,
             creatable: false, query: null, editData: null, policy: null,
-            form: 'bare', nav: new NavMetadata(label: $key), filterProvider: $provider,
+            form: \Schemastud\Frame\Registry\FormMode::Bare, nav: new NavMetadata(label: $key), filterProvider: $provider,
         );
     }
 

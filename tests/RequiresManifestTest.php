@@ -94,7 +94,7 @@ class RequiresManifestTest extends TestCase
     private function action(string $key, ?array $requires = null): ResourceActionDefinition
     {
         return new ResourceActionDefinition(
-            key: $key, label: ucfirst($key), scope: ResourceActionDefinition::ScopeRecord, method: 'POST', url: "/api/notes/{id}/{$key}",
+            key: $key, label: ucfirst($key), scope: \Schemastud\Frame\Registry\ResourceActionScope::Record, method: 'POST', url: "/api/notes/{id}/{$key}",
             requires: $requires ?? new Optional,
         );
     }

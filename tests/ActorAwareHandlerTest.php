@@ -20,7 +20,7 @@ class ActorAwareHandlerTest extends TestCase
 {
     private function exercise(?User $actor, bool $aware, string $verb): void
     {
-        $definition = new ResourceDefinition(key: 'sample', model: null, data: SampleResourceData::class, creatable: false, query: null, editData: null, policy: null, form: 'bare', nav: new NavMetadata(label: 'Sample'));
+        $definition = new ResourceDefinition(key: 'sample', model: null, data: SampleResourceData::class, creatable: false, query: null, editData: null, policy: null, form: \Schemastud\Frame\Registry\FormMode::Bare, nav: new NavMetadata(label: 'Sample'));
         $registry = (new InMemoryResourceRegistry)->register($definition);
         $handler = $aware
             ? Mockery::mock(FrameResourceHandler::class, ActorAwareFrameResourceHandler::class)

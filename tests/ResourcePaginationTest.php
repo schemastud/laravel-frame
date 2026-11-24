@@ -31,7 +31,7 @@ class ResourcePaginationTest extends TestCase
             new ResourceDefinition(
                 key: 'articles', model: null, data: SampleResourceData::class,
                 creatable: false, query: null, editData: null, policy: null,
-                form: 'bare', nav: new NavMetadata(label: 'Articles'),
+                form: \Schemastud\Frame\Registry\FormMode::Bare, nav: new NavMetadata(label: 'Articles'),
             ),
         ));
         $this->handler = Mockery::mock(FrameResourceHandler::class);

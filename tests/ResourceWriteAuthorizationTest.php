@@ -90,7 +90,7 @@ class ResourceWriteAuthorizationTest extends TestCase
             query: null,
             editData: null,
             policy: null,
-            form: 'bare',
+            form: \Schemastud\Frame\Registry\FormMode::Bare,
             nav: new NavMetadata(label: ucfirst($key)),
         );
     }

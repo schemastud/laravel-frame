@@ -40,7 +40,7 @@ class ManifestTest extends TestCase
             query: null,
             editData: null,
             policy: null,
-            form: 'enriched',
+            form: \Schemastud\Frame\Registry\FormMode::Enriched,
             nav: new NavMetadata(
                 label: 'Samples',
                 group: 'Testing',
@@ -61,7 +61,7 @@ class ManifestTest extends TestCase
         $this->assertInstanceOf(ResourceDefinition::class, $def);
         $this->assertSame(SampleResourceData::class, $def->data);
         $this->assertSame(SampleModel::class, $def->model);
-        $this->assertSame('enriched', $def->form);
+        $this->assertSame(\Schemastud\Frame\Registry\FormMode::Enriched, $def->form);
         $this->assertSame('Samples', $def->nav->label);
         $this->assertSame('Testing', $def->nav->group);
         // FC-22 host-nav join keys ride NavMetadata.
@@ -90,7 +90,7 @@ class ManifestTest extends TestCase
             model: SampleModel::class,
             data: SampleResourceData::class,
             creatable: false,
-            query: null, editData: null, policy: null, form: 'enriched',
+            query: null, editData: null, policy: null, form: \Schemastud\Frame\Registry\FormMode::Enriched,
             nav: new NavMetadata(label: 'Read only'),
             deletable: false,
             editable: false,
@@ -115,7 +115,7 @@ class ManifestTest extends TestCase
             query: null,
             editData: null,
             policy: null,
-            form: 'enriched',
+            form: \Schemastud\Frame\Registry\FormMode::Enriched,
             nav: new NavMetadata(label: 'Layer Nodes', group: 'Numerology'),
         ));
 
@@ -228,7 +228,7 @@ class ManifestTest extends TestCase
             model: SampleModel::class,
             data: SampleResourceData::class,
             creatable: true,
-            query: null, editData: null, policy: null, form: 'enriched',
+            query: null, editData: null, policy: null, form: \Schemastud\Frame\Registry\FormMode::Enriched,
             nav: new NavMetadata(label: 'Layers'),
         ));
         $registry->register(new ResourceDefinition(
@@ -236,7 +236,7 @@ class ManifestTest extends TestCase
             model: SampleModel::class,
             data: SampleResourceData::class,
             creatable: true,
-            query: null, editData: null, policy: null, form: 'enriched',
+            query: null, editData: null, policy: null, form: \Schemastud\Frame\Registry\FormMode::Enriched,
             nav: new NavMetadata(label: 'Layer Nodes'),
         ));
 
@@ -266,10 +266,9 @@ class ManifestTest extends TestCase
     }
 
     /** frame-foundation 17: a form mode outside {@see \Schemastud\Frame\Registry\FormMode} is refused when the definition is built. */
-    public function test_a_raw_form_mode_is_refused_when_the_definition_is_built(): void
+    public function test_a_raw_form_mode_is_rejected_by_the_enum_typed_constructor(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Resource [legacy] declares form mode [raw]; a form mode is one of: enriched, bare.');
+        $this->expectException(\TypeError::class);
 
         new ResourceDefinition(
             key: 'legacy',

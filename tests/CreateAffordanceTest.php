@@ -23,7 +23,7 @@ use Schemastud\Frame\Tests\Fixtures\SampleModel;
  */
 class CreateAffordanceTest extends TestCase
 {
-    private function definition(bool $creatable, string $createAffordance = 'frame'): ResourceDefinition
+    private function definition(bool $creatable, \Schemastud\Frame\Registry\ResourceCreateAffordance $createAffordance = \Schemastud\Frame\Registry\ResourceCreateAffordance::Frame): ResourceDefinition
     {
         return new ResourceDefinition(
             key: 'sample',
@@ -33,7 +33,7 @@ class CreateAffordanceTest extends TestCase
             query: null,
             editData: null,
             policy: null,
-            form: 'bare',
+            form: \Schemastud\Frame\Registry\FormMode::Bare,
             nav: new NavMetadata(label: 'Samples'),
             createAffordance: $createAffordance,
         );
@@ -41,7 +41,7 @@ class CreateAffordanceTest extends TestCase
 
     public function test_the_slot_defaults_to_frame_so_every_existing_declaration_is_unchanged(): void
     {
-        $this->assertSame('frame', $this->definition(creatable: true)->createAffordance);
+        $this->assertSame(\Schemastud\Frame\Registry\ResourceCreateAffordance::Frame, $this->definition(creatable: true)->createAffordance);
     }
 
     public function test_a_creatable_resource_declaring_nothing_keeps_frames_own_affordance(): void
@@ -53,7 +53,7 @@ class CreateAffordanceTest extends TestCase
     {
         $this->assertSame(
             'host',
-            $this->definition(creatable: true, createAffordance: 'host')->resolvedCreateAffordance(),
+            $this->definition(creatable: true, createAffordance: \Schemastud\Frame\Registry\ResourceCreateAffordance::Host)->resolvedCreateAffordance(),
         );
     }
 
@@ -77,16 +77,16 @@ class CreateAffordanceTest extends TestCase
     {
         $this->assertSame(
             'host',
-            $this->definition(creatable: false, createAffordance: 'frame')->resolvedCreateAffordance(),
+            $this->definition(creatable: false, createAffordance: \Schemastud\Frame\Registry\ResourceCreateAffordance::Frame)->resolvedCreateAffordance(),
         );
     }
 
     public function test_the_copy_wither_carries_the_slot_and_can_overlay_it(): void
     {
-        $base = $this->definition(creatable: true, createAffordance: 'host');
+        $base = $this->definition(creatable: true, createAffordance: \Schemastud\Frame\Registry\ResourceCreateAffordance::Host);
 
-        $this->assertSame('host', $base->withOverrides(policy: 'anything')->createAffordance);
-        $this->assertSame('frame', $base->withOverrides(createAffordance: 'frame')->createAffordance);
+        $this->assertSame(\Schemastud\Frame\Registry\ResourceCreateAffordance::Host, $base->withOverrides(policy: 'anything')->createAffordance);
+        $this->assertSame(\Schemastud\Frame\Registry\ResourceCreateAffordance::Frame, $base->withOverrides(createAffordance: \Schemastud\Frame\Registry\ResourceCreateAffordance::Frame)->createAffordance);
     }
 
     public function test_the_manifest_block_carries_the_resolved_value_for_the_shells(): void

@@ -20,7 +20,7 @@ class ResourceFilterDependencyTest extends TestCase
         return new ResourceDefinition(
             key: $key, model: SampleModel::class, data: SampleResourceData::class,
             creatable: true, query: null, editData: null, policy: null,
-            form: 'bare', nav: new NavMetadata(label: $key), filterProvider: $provider,
+            form: \Schemastud\Frame\Registry\FormMode::Bare, nav: new NavMetadata(label: $key), filterProvider: $provider,
         );
     }
 

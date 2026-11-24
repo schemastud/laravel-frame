@@ -13,6 +13,7 @@ use Schemastud\DataSchemas\Generators\Generator;
 use Schemastud\Frame\Registry\ResourceDefinition;
 use Spatie\TypeScriptTransformer\Support\Loggers\ArrayLogger;
 use Spatie\TypeScriptTransformer\Transformers\AttributedClassTransformer;
+use Spatie\TypeScriptTransformer\Transformers\EnumTransformer;
 use Spatie\TypeScriptTransformer\TypeScriptTransformer;
 use Spatie\TypeScriptTransformer\TypeScriptTransformerConfigFactory;
 use Spatie\TypeScriptTransformer\Writers\GlobalNamespaceWriter;
@@ -120,6 +121,7 @@ class FilterContractGenerationTest extends TestCase
             $logger = new ArrayLogger;
             TypeScriptTransformer::create(TypeScriptTransformerConfigFactory::create()
                 ->transformer(AttributedClassTransformer::class)
+                ->transformer(EnumTransformer::class)
                 ->transformDirectories(__DIR__.'/../src/Data', __DIR__.'/../src/Registry')
                 ->outputDirectory($directory)
                 ->writer(new GlobalNamespaceWriter('frame.d.ts'))

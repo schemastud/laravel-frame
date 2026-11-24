@@ -29,40 +29,28 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 #[TypeScript]
 class ResourceActionDefinition extends Data
 {
-    /** The action sits beside the list's "New" and addresses the collection. */
-    public const ScopeResource = 'resource';
-
-    /** The action sits on each row and on the detail page and addresses one record. */
-    public const ScopeRecord = 'record';
-
-    /** Show the response's message, then refetch the resource's reads. The default. */
-    public const ResultToast = 'toast';
-
-    /** Open the resulting record's detail (the response's `data.id`, else the acted-on record). */
-    public const ResultNavigate = 'navigate';
-
     /** The placeholder a record-scope URL template carries for the record's key. */
     public const IdPlaceholder = '{id}';
 
     /**
      * @param  string  $key  unique within the resource; the `can.actions` key and the schema endpoint's `{action}` segment
      * @param  string  $label  the button's words
-     * @param  'resource'|'record'  $scope  where the button renders (see the constants)
+     * @param  ResourceActionScope  $scope  where the button renders
      * @param  string  $method  the HTTP verb the URL answers to
      * @param  string  $url  the URL to send the request to. A `record` action's template carries `{id}`; a `resource` action's carries none
      * @param  class-string<Data>|null  $input  the Data class the request body must satisfy, or null for a confirm-only action that sends no body. Class-string in PHP; on the wire, the generated type's dot-form name (ADR-0004)
-     * @param  'toast'|'navigate'  $result  how the answer is presented (see the constants)
+     * @param  ResourceActionResult  $result  how the answer is presented
      * @param  bool  $destructive  whether the button reads as dangerous and a confirm-only press asks first in those words
      */
     public function __construct(
         public string $key,
         public string $label,
-        public string $scope,
+        public ResourceActionScope $scope,
         public string $method,
         public string $url,
         #[WithTransformer(GeneratedTypeName::class)]
         public ?string $input = null,
-        public string $result = self::ResultToast,
+        public ResourceActionResult $result = ResourceActionResult::Toast,
         public bool $destructive = false,
         /**
          * The agreement keys this action's operation requires (agreements 05: by its dotted behaviour key), keys only.

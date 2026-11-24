@@ -2,6 +2,8 @@
 
 namespace Schemastud\Frame\Registry;
 
+use Spatie\TypeScriptTransformer\Attributes\TypeScript;
+
 /**
  * A resource's form mode — the one list every producer's `form` value is checked against.
  *
@@ -11,6 +13,7 @@ namespace Schemastud\Frame\Registry;
  * Any other value is refused where a definition is built ({@see ResourceDefinition}, and beam's
  * particle registration), never later on the client.
  */
+#[TypeScript]
 enum FormMode: string
 {
     case Enriched = 'enriched';

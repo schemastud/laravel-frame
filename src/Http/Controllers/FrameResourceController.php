@@ -148,7 +148,7 @@ class FrameResourceController implements ServesResourceSocket
         }
 
         // The class-and-generator choice is one shared method, so the declaration walker reads what this serves.
-        return app(ResourceSchemas::class)->forResource($definition, $query->purpose);
+        return app(ResourceSchemas::class)->forResource($definition, $query->purpose->value);
     }
 
     public function show(Request $request, string $resource, string $id): array
